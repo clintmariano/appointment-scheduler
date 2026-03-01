@@ -20,10 +20,12 @@ import { InstallPrompt } from './components/InstallPrompt';
 import { initSocket, disconnectSocket, onAppointmentAlert } from './services/socketService';
 import { ToastProvider, useToast } from './components/Toast';
 import { syncService } from './services/syncService';
+import { NotificationProvider, useNotifications } from './contexts/NotificationContext';
 
 function AppContent() {
   const { user, isLoading } = useAuth();
   const { showToast } = useToast();
+  const { addNotification } = useNotifications();
   const [documents, setDocuments] = useState<PatientDocument[]>([]);
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
   const [currentDocument, setCurrentDocument] = useState<PatientDocument | null>(null);
@@ -92,6 +94,20 @@ function AppContent() {
         duration: data.priority === 'emergency' ? 8000 : 5000
       });
 
+      // Add to notification center
+      const now = new Date();
+      const startTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+      const endTime = new Date(now.getTime() + 30 * 60000).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+      addNotification({
+        type: toastType,
+        title: message,
+        message: data.subjective || '',
+        patientName: data.patientName,
+        startTime,
+        endTime
+      });
+
       // Refresh patient data to get the new appointment
       loadDocuments();
     });
@@ -99,7 +115,7 @@ function AppContent() {
     return () => {
       unsubscribe();
     };
-  }, [user, showToast]);
+  }, [user, showToast, addNotification]);
 
   // Initialize local DB when user logs in (doctor only)
   useEffect(() => {
@@ -533,8 +549,10 @@ function App() {
   return (
     <AuthProvider>
       <ToastProvider>
-        <AppContent />
-        <InstallPrompt />
+        <NotificationProvider>
+          <AppContent />
+          <InstallPrompt />
+        </NotificationProvider>
       </ToastProvider>
     </AuthProvider>
   );

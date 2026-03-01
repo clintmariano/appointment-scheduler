@@ -81,8 +81,8 @@ export function Header({ documents = [], searchTerm = '', onSearchChange, onSele
             <Stethoscope size={20} className="text-white" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-white leading-tight">MY PEDIA</h1>
-            <p className="text-[10px] text-teal-100 leading-tight">Well & Sick Children's Clinic</p>
+            <h1 className="text-lg font-bold text-white leading-tight">MyOB</h1>
+            <p className="text-[10px] text-teal-100 leading-tight">Appointment Scheduler</p>
           </div>
         </div>
 
