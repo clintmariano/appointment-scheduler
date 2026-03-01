@@ -10,9 +10,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
       manifest: {
-        name: 'MY PEDIA - EHR System',
-        short_name: 'MY PEDIA',
-        description: 'Electronic Health Records for Well and Sick Children\'s Clinic',
+        name: 'MyOB - Appointment Scheduler',
+        short_name: 'MyOB',
+        description: 'Obstetric Appointment Scheduler and Patient Management',
         theme_color: '#2563eb',
         background_color: '#f3f4f6',
         display: 'standalone',
