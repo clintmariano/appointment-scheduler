@@ -2,6 +2,27 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Toast notification animations */
+@keyframes shrink {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
 /* Fix iOS Safari date input styling issues */
 input[type="date"] {
   -webkit-appearance: none;

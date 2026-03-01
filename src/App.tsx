@@ -17,10 +17,12 @@ import { apiService } from './services/api';
 import { createEmptyDocument, validateDocument } from './utils/documentUtils';
 import { FileText, Stethoscope } from 'lucide-react';
 import { InstallPrompt } from './components/InstallPrompt';
-import { initSocket, disconnectSocket } from './services/socketService';
+import { initSocket, disconnectSocket, onAppointmentAlert } from './services/socketService';
+import { ToastProvider, useToast } from './components/Toast';
 
 function AppContent() {
   const { user, isLoading } = useAuth();
+  const { showToast } = useToast();
   const [documents, setDocuments] = useState<PatientDocument[]>([]);
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
   const [currentDocument, setCurrentDocument] = useState<PatientDocument | null>(null);
@@ -64,6 +66,39 @@ function AppContent() {
       disconnectSocket();
     };
   }, [user]);
+
+  // Listen for real-time appointment alerts via WebSocket (doctor only)
+  useEffect(() => {
+    if (!user || user.role !== 'doctor') return;
+
+    const unsubscribe = onAppointmentAlert((data) => {
+      console.log('Received appointment alert via WebSocket:', data);
+
+      // Show toast notification
+      const toastType = data.priority === 'emergency' ? 'emergency'
+        : data.priority === 'urgent' ? 'urgent' : 'routine';
+
+      const message = data.priority === 'emergency'
+        ? 'Emergency patient alert!'
+        : data.priority === 'urgent'
+        ? 'New patient with symptomatic concern.'
+        : 'New walk-in patient added.';
+
+      showToast({
+        type: toastType,
+        title: message,
+        message: data.patientName,
+        duration: data.priority === 'emergency' ? 8000 : 5000
+      });
+
+      // Refresh patient data to get the new appointment
+      loadDocuments();
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [user, showToast]);
 
   // Initialize local DB when user logs in (doctor only)
   useEffect(() => {
@@ -492,8 +527,10 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-      <AppContent />
-      <InstallPrompt />
+      <ToastProvider>
+        <AppContent />
+        <InstallPrompt />
+      </ToastProvider>
     </AuthProvider>
   );
 }

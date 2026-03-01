@@ -7,7 +7,6 @@ import {
   X,
   Phone
 } from 'lucide-react';
-import { onAppointmentAlert } from '../services/socketService';
 
 // Alert banner type
 interface AlertBanner {
@@ -351,14 +350,6 @@ function AppointmentCard({
   );
 }
 
-// Real-time notification popup
-interface NotificationPopup {
-  id: string;
-  patientName: string;
-  priority: 'emergency' | 'urgent' | 'routine';
-  message: string;
-}
-
 interface AppointmentsViewProps {
   patients: PatientDocument[];
   onSelectPatient: (id: string) => void;
@@ -366,7 +357,7 @@ interface AppointmentsViewProps {
   onRefresh?: () => void; // For polling new data
 }
 
-export function AppointmentsView({ patients, onSelectPatient, onScheduleAppointment, onRefresh }: AppointmentsViewProps) {
+export function AppointmentsView({ patients, onSelectPatient, onScheduleAppointment }: AppointmentsViewProps) {
   const [selectedDate, setSelectedDate] = useState<Date>(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -378,58 +369,6 @@ export function AppointmentsView({ patients, onSelectPatient, onScheduleAppointm
   const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(() => {
     return new Set(getPersistedDismissedAlerts());
   });
-  // Real-time notification popup
-  const [notification, setNotification] = useState<NotificationPopup | null>(null);
-  // Track seen appointment IDs to detect new ones
-  const [seenAppointmentIds, setSeenAppointmentIds] = useState<Set<string>>(() => {
-    // Initialize with current appointments
-    const ids = new Set<string>();
-    const today = new Date().toISOString().split('T')[0];
-    patients.forEach(patient => {
-      patient.followUpDates?.forEach(followUp => {
-        if (followUp.date === today && !followUp.completed) {
-          ids.add(followUp.id);
-        }
-      });
-    });
-    return ids;
-  });
-
-  // Listen for real-time appointment alerts via WebSocket
-  useEffect(() => {
-    const unsubscribe = onAppointmentAlert((data) => {
-      console.log('Received appointment alert via WebSocket:', data);
-
-      // Show notification popup
-      setNotification({
-        id: data.appointmentId,
-        patientName: data.patientName,
-        priority: data.priority,
-        message: data.priority === 'emergency'
-          ? 'Emergency patient alert!'
-          : data.priority === 'urgent'
-          ? 'New patient with symptomatic concern.'
-          : 'New walk-in patient added.'
-      });
-
-      // Mark as seen
-      setSeenAppointmentIds(prev => new Set([...prev, data.appointmentId]));
-
-      // Auto-dismiss after 10 seconds
-      setTimeout(() => {
-        setNotification(prev => prev?.id === data.appointmentId ? null : prev);
-      }, 10000);
-
-      // Refresh data to get the new appointment
-      if (onRefresh) {
-        onRefresh();
-      }
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, [onRefresh]);
 
   // Initialize alerts from patient data (only show non-dismissed)
   useEffect(() => {
@@ -624,10 +563,6 @@ export function AppointmentsView({ patients, onSelectPatient, onScheduleAppointm
     saveDismissedAlert(id);
   };
 
-  const dismissNotification = () => {
-    setNotification(null);
-  };
-
   const handleAppointmentClick = (appointment: AppointmentItem) => {
     setSelectedAppointment(appointment);
   };
@@ -645,51 +580,6 @@ export function AppointmentsView({ patients, onSelectPatient, onScheduleAppointm
 
   return (
     <div className="flex-1 overflow-auto bg-slate-50">
-      {/* Real-time Notification Popup */}
-      {notification && (
-        <div className="fixed top-4 right-4 z-50 animate-pulse">
-          <div className={`rounded-2xl shadow-2xl p-4 max-w-sm border-l-4 ${
-            notification.priority === 'emergency'
-              ? 'bg-red-50 border-red-500'
-              : notification.priority === 'urgent'
-              ? 'bg-amber-50 border-amber-500'
-              : 'bg-teal-50 border-teal-500'
-          }`}>
-            <div className="flex items-start gap-3">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                notification.priority === 'emergency'
-                  ? 'bg-red-500'
-                  : notification.priority === 'urgent'
-                  ? 'bg-amber-500'
-                  : 'bg-teal-500'
-              }`}>
-                <span className="text-white text-lg">!</span>
-              </div>
-              <div className="flex-1">
-                <p className={`font-semibold ${
-                  notification.priority === 'emergency'
-                    ? 'text-red-800'
-                    : notification.priority === 'urgent'
-                    ? 'text-amber-800'
-                    : 'text-teal-800'
-                }`}>
-                  {notification.message}
-                </p>
-                <p className="text-gray-600 text-sm mt-1">
-                  {notification.patientName}
-                </p>
-              </div>
-              <button
-                onClick={dismissNotification}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X size={18} />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Top Header with Search */}
       <div className="sticky top-0 bg-slate-50 z-10 px-6 pt-6 pb-2">
         {/* Alert Banners */}
