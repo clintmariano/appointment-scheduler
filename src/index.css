@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Fix iOS Safari date input styling issues */
+input[type="date"] {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-color: white;
+}
+
+input[type="date"]::-webkit-date-and-time-value {
+  text-align: left;
+}
+
+/* Remove iOS date input inner shadow and gray overlay */
+@supports (-webkit-touch-callout: none) {
+  input[type="date"] {
+    background-color: white;
+    min-height: 2.5rem;
+  }
+}

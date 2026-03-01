@@ -1,0 +1,22 @@
+const VACCINES = [
+  'TUBERCULIN TEST',
+  'BCG',
+  'HEPATITIS B',
+  'DPT',
+  'OPV/IPV',
+  'HIB',
+  'ROTAVIRUS',
+  'MEASLES',
+  'MMR',
+  'VARICELLA',
+  'HEPATITIS A',
+  'TYPHOID',
+  'PNEUMOCOCCAL',
+  'MENINGOCOCCAL',
+  'INFLUENZA',
+  'HPV',
+  'JAPANESE ENCEPHALITIS',
+  'COVID VACCINE'
+];
+
+module.exports = { VACCINES };
