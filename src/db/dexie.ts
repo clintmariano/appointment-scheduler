@@ -26,13 +26,13 @@ export interface SyncMeta {
   value: string;
 }
 
-class EHRDatabase extends Dexie {
+class MyOBDatabase extends Dexie {
   patients!: Table<LocalPatientDocument, string>;
   pendingChanges!: Table<PendingChange, number>;
   syncMeta!: Table<SyncMeta, string>;
 
   constructor() {
-    super('EHRDatabase');
+    super('MyOBDatabase');
 
     // Schema version 1
     this.version(1).stores({
@@ -199,7 +199,7 @@ class EHRDatabase extends Dexie {
 }
 
 // Single database instance
-export const db = new EHRDatabase();
+export const db = new MyOBDatabase();
 
 // Helper to generate IDs (matching existing pattern)
 export function generateLocalId(): string {

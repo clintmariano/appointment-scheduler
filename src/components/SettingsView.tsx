@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { SyncStatus } from './SyncStatus';
 import { PatientImport } from './PatientImport';
+import { syncService } from '../services/syncService';
 import {
   User,
   Bell,
@@ -11,16 +12,38 @@ import {
   Globe,
   HelpCircle,
   RefreshCw,
-  Upload
+  Upload,
+  CheckCircle,
+  AlertCircle
 } from 'lucide-react';
 
 export function SettingsView() {
   const { user } = useAuth();
   const [showImportModal, setShowImportModal] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<'success' | 'error' | null>(null);
 
   const handleImportSuccess = () => {
     // Refresh data or trigger any needed updates
     window.location.reload();
+  };
+
+  const handleForceSync = async () => {
+    setIsSyncing(true);
+    setSyncResult(null);
+    try {
+      const result = await syncService.fullSync();
+      setSyncResult(result.success ? 'success' : 'error');
+      // Auto-clear success message after 3 seconds
+      if (result.success) {
+        setTimeout(() => setSyncResult(null), 3000);
+      }
+    } catch (error) {
+      console.error('Force sync failed:', error);
+      setSyncResult('error');
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   return (
@@ -111,10 +134,31 @@ export function SettingsView() {
             <span className="text-gray-600">Sync Status</span>
             <SyncStatus />
           </div>
-          <div className="pt-4">
-            <button className="w-full py-3 border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors font-medium">
-              Force Sync Now
+          <div className="pt-4 space-y-3">
+            <button
+              onClick={handleForceSync}
+              disabled={isSyncing}
+              className={`w-full py-3 border rounded-xl font-medium flex items-center justify-center gap-2 transition-colors ${
+                isSyncing
+                  ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
+                  : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+              {isSyncing ? 'Syncing...' : 'Force Sync Now'}
             </button>
+            {syncResult === 'success' && (
+              <div className="flex items-center gap-2 text-green-600 text-sm justify-center">
+                <CheckCircle className="w-4 h-4" />
+                Sync completed successfully
+              </div>
+            )}
+            {syncResult === 'error' && (
+              <div className="flex items-center gap-2 text-red-600 text-sm justify-center">
+                <AlertCircle className="w-4 h-4" />
+                Sync failed. Please try again.
+              </div>
+            )}
           </div>
         </div>
 
@@ -196,7 +240,7 @@ export function SettingsView() {
           <div className="space-y-3">
             <div className="flex items-center justify-between py-2">
               <span className="text-gray-600">App Name</span>
-              <span className="text-gray-800 font-medium">MyPedia</span>
+              <span className="text-gray-800 font-medium">MyOB</span>
             </div>
             <div className="flex items-center justify-between py-2">
               <span className="text-gray-600">Version</span>

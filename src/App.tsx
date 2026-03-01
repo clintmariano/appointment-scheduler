@@ -19,6 +19,7 @@ import { FileText, Stethoscope } from 'lucide-react';
 import { InstallPrompt } from './components/InstallPrompt';
 import { initSocket, disconnectSocket, onAppointmentAlert } from './services/socketService';
 import { ToastProvider, useToast } from './components/Toast';
+import { syncService } from './services/syncService';
 
 function AppContent() {
   const { user, isLoading } = useAuth();
@@ -115,10 +116,14 @@ function AppContent() {
           // First time - load from server
           console.log('No local data found - initializing from server...');
           await apiService.initializeFromServer();
+        } else {
+          // Has local data - force full sync to ensure consistency across devices
+          console.log('Local data exists - performing full sync...');
+          await syncService.fullSync();
         }
       } catch (error) {
         console.error('DB initialization error:', error);
-        // Continue anyway - app will work with empty DB
+        // Continue anyway - app will work with existing local data
       } finally {
         setIsInitializing(false);
       }
