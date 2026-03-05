@@ -120,7 +120,7 @@ export function ScheduleAppointmentPanel({
   const renderAppointmentFields = () => (
     <div className="space-y-4">
       {/* Date and Time Row */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Date
@@ -136,12 +136,12 @@ export function ScheduleAppointmentPanel({
             />
             <div
               onClick={() => dateInputRef.current?.showPicker()}
-              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm flex items-center justify-between cursor-pointer hover:border-gray-300"
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm flex items-center justify-between cursor-pointer hover:border-gray-300"
             >
               <span className={appointmentDate ? 'text-gray-700' : 'text-gray-400'}>
                 {appointmentDate ? formatDate(appointmentDate) : 'Select date'}
               </span>
-              <Calendar size={16} className="text-gray-400" />
+              <Calendar size={16} className="text-gray-400 flex-shrink-0" />
             </div>
           </div>
         </div>
@@ -150,7 +150,7 @@ export function ScheduleAppointmentPanel({
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Time
           </label>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <select
               value={startTime}
               onChange={(e) => {
@@ -161,17 +161,17 @@ export function ScheduleAppointmentPanel({
                   setEndTime(TIME_OPTIONS[startIndex + 1]);
                 }
               }}
-              className="flex-1 px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              className="flex-1 min-w-0 px-2 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
             >
               {TIME_OPTIONS.map(time => (
                 <option key={time} value={time}>{formatTimeForDisplay(time)}</option>
               ))}
             </select>
-            <span className="text-gray-400">-</span>
+            <span className="text-gray-400 flex-shrink-0">-</span>
             <select
               value={endTime}
               onChange={(e) => setEndTime(e.target.value)}
-              className="flex-1 px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              className="flex-1 min-w-0 px-2 py-2.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
             >
               {TIME_OPTIONS.map(time => (
                 <option key={time} value={time}>{formatTimeForDisplay(time)}</option>
@@ -196,11 +196,11 @@ export function ScheduleAppointmentPanel({
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Priority
         </label>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button
             type="button"
             onClick={() => setPriority('routine')}
-            className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-medium border transition-all ${
+            className={`flex-1 min-w-[80px] px-3 py-2.5 rounded-lg text-sm font-medium border transition-all ${
               priority === 'routine'
                 ? 'bg-green-50 border-green-300 text-green-700'
                 : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
@@ -211,7 +211,7 @@ export function ScheduleAppointmentPanel({
           <button
             type="button"
             onClick={() => setPriority('urgent')}
-            className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-medium border transition-all ${
+            className={`flex-1 min-w-[80px] px-3 py-2.5 rounded-lg text-sm font-medium border transition-all ${
               priority === 'urgent'
                 ? 'bg-amber-50 border-amber-300 text-amber-700'
                 : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
@@ -222,7 +222,7 @@ export function ScheduleAppointmentPanel({
           <button
             type="button"
             onClick={() => setPriority('emergency')}
-            className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-medium border transition-all ${
+            className={`flex-1 min-w-[80px] px-3 py-2.5 rounded-lg text-sm font-medium border transition-all ${
               priority === 'emergency'
                 ? 'bg-red-50 border-red-300 text-red-700'
                 : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
@@ -271,7 +271,7 @@ export function ScheduleAppointmentPanel({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-5">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-5">
           {/* If no patient context, show search */}
           {!hasSelectedPatientContext && (
             <div className="mb-6">

@@ -79,18 +79,6 @@ export function DoctorDashboard({
       }
     });
 
-    // If no appointments today, show some recent patients
-    if (todayPatients.length === 0) {
-      patients.slice(0, 15).forEach((patient) => {
-        // Check if patient has any confirmed follow-up
-        const hasConfirmedFollowUp = patient.followUpDates?.some(f => f.confirmed) || false;
-        todayPatients.push({
-          patient,
-          status: hasConfirmedFollowUp ? 'attending' : 'pending'
-        });
-      });
-    }
-
     return todayPatients;
   };
 
@@ -181,7 +169,7 @@ export function DoctorDashboard({
                 <Calendar size={14} className="lg:w-4 lg:h-4 text-teal-600" />
               </div>
             </div>
-            <p className="text-2xl lg:text-4xl font-bold text-gray-800">{todaysAppointments.length || patients.length}</p>
+            <p className="text-2xl lg:text-4xl font-bold text-gray-800">{todaysAppointments.length}</p>
             <p className="text-[10px] lg:text-xs text-teal-600 mt-1">
               {upcomingAppointments.length} upcoming this week
             </p>

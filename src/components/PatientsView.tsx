@@ -75,7 +75,7 @@ export function PatientsView({
         {/* Header */}
         <div className="p-4 border-b border-gray-100">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-800">Patients</h2>
+            <h2 className="text-lg font-semibold text-gray-800">Patients ({patients.length})</h2>
             <button
               onClick={onCreateNew}
               className="flex items-center gap-1.5 bg-gradient-to-r from-teal-500 to-cyan-500 text-white px-3 py-2 rounded-xl hover:from-teal-600 hover:to-cyan-600 transition-all text-sm font-medium shadow-sm"
