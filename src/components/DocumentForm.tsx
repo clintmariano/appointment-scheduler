@@ -223,9 +223,9 @@ export function DocumentForm({ document, originalDocument, onChange, onSave, isN
   const currentAOG = document.lmp ? formatAOG(calculateAOG(document.lmp)) : '';
 
   return (
-    <div className="flex-1 bg-slate-100 overflow-y-auto">
-      <div className="w-full px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-5">
-        {/* Header */}
+    <div className="flex-1 bg-slate-100">
+      {/* Sticky Header - on mobile, positioned below the back button (approx 52px) */}
+      <div className="sticky top-[52px] lg:top-0 z-10 bg-slate-100 px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-2">
         <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 print-content shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -262,7 +262,9 @@ export function DocumentForm({ document, originalDocument, onChange, onSave, isN
             </div>
           </div>
         </div>
+      </div>
 
+      <div className="w-full px-4 sm:px-6 lg:px-8 pb-4 sm:pb-6 space-y-4 sm:space-y-5">
         {/* Patient Information */}
         <FormSection title="Patient Information">
           {/* Row 1: Surname, Given Name, Birth Date */}

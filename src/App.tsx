@@ -12,6 +12,7 @@ import { AnalyticsView } from './components/AnalyticsView';
 import { SettingsView } from './components/SettingsView';
 import { DuplicateWarningDialog } from './components/DuplicateWarningDialog';
 import { ScheduleAppointmentPanel } from './components/ScheduleAppointmentPanel';
+import { UnsavedChangesDialog } from './components/UnsavedChangesDialog';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { apiService } from './services/api';
 import { createEmptyDocument, validateDocument } from './utils/documentUtils';
@@ -29,6 +30,7 @@ function AppContent() {
   const [documents, setDocuments] = useState<PatientDocument[]>([]);
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
   const [currentDocument, setCurrentDocument] = useState<PatientDocument | null>(null);
+  const [originalDocument, setOriginalDocument] = useState<PatientDocument | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [isNew, setIsNew] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(false);
@@ -37,6 +39,11 @@ function AppContent() {
   const [currentView, setCurrentView] = useState<ViewType>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [scheduleAppointmentOpen, setScheduleAppointmentOpen] = useState(false);
+  const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState<{
+    type: 'select' | 'view' | 'create';
+    payload?: string | ViewType;
+  } | null>(null);
   const [duplicateWarning, setDuplicateWarning] = useState<{
     existingPatient: {
       id: string;
@@ -49,13 +56,35 @@ function AppContent() {
     pendingPatient: PatientDocument;
   } | null>(null);
 
-  // Ref to always have access to the latest currentDocument
+  // Refs to always have access to the latest state in callbacks
   const currentDocumentRef = useRef<PatientDocument | null>(null);
+  const originalDocumentRef = useRef<PatientDocument | null>(null);
+  const isNewRef = useRef<boolean>(false);
 
-  // Keep ref in sync with state
+  // Keep refs in sync with state
   useEffect(() => {
     currentDocumentRef.current = currentDocument;
   }, [currentDocument]);
+
+  useEffect(() => {
+    originalDocumentRef.current = originalDocument;
+  }, [originalDocument]);
+
+  useEffect(() => {
+    isNewRef.current = isNew;
+  }, [isNew]);
+
+  // Check if there are unsaved changes
+  const hasUnsavedChanges = useCallback((): boolean => {
+    if (!currentDocument) return false;
+    if (isNew) {
+      // For new documents, check if any required fields have been filled
+      return !!(currentDocument.patientName || currentDocument.birthday);
+    }
+    if (!originalDocument) return false;
+    // Compare JSON strings for deep equality
+    return JSON.stringify(currentDocument) !== JSON.stringify(originalDocument);
+  }, [currentDocument, originalDocument, isNew]);
 
   // Initialize WebSocket connection based on user role
   useEffect(() => {
@@ -174,17 +203,20 @@ function AppContent() {
       const doc = documents.find(d => d.id === selectedDocumentId);
       if (doc) {
         setCurrentDocument(doc);
+        setOriginalDocument(JSON.parse(JSON.stringify(doc))); // Deep copy for comparison
         setIsNew(false);
       }
     }
   }, [selectedDocumentId, documents]);
 
-  const handleCreateNew = () => {
-    console.log('handleCreateNew called');
+  // Perform the actual create new action
+  const performCreateNew = () => {
+    console.log('performCreateNew called');
     try {
       const newDoc = createEmptyDocument();
       console.log('New document created:', newDoc.id);
       setCurrentDocument(newDoc);
+      setOriginalDocument(null); // No original for new documents
       setSelectedDocumentId(newDoc.id);
       setIsNew(true);
       // Switch to patients view when creating new
@@ -192,6 +224,16 @@ function AppContent() {
     } catch (err) {
       console.error('Error creating new document:', err);
     }
+  };
+
+  const handleCreateNew = () => {
+    // Check for unsaved changes when in patients view
+    if (currentView === 'patients' && hasUnsavedChanges()) {
+      setPendingNavigation({ type: 'create' });
+      setShowUnsavedChangesDialog(true);
+      return;
+    }
+    performCreateNew();
   };
 
   const handleSaveDocument = useCallback(() => {
@@ -260,10 +302,12 @@ function AppContent() {
     }
   };
 
-  const handleSelectDocument = (id: string) => {
+  // Perform the actual select document action
+  const performSelectDocument = (id: string) => {
     const doc = documents.find(d => d.id === id);
     if (doc) {
       setCurrentDocument(doc);
+      setOriginalDocument(JSON.parse(JSON.stringify(doc))); // Deep copy for comparison
       setSelectedDocumentId(id);
       setIsNew(false);
       // Switch to patients view when selecting a patient
@@ -271,8 +315,35 @@ function AppContent() {
     }
   };
 
-  const handleViewChange = (view: ViewType) => {
+  const handleSelectDocument = (id: string) => {
+    // Don't prompt if selecting the same document
+    if (id === selectedDocumentId) return;
+
+    // Check for unsaved changes when in patients view
+    if (currentView === 'patients' && hasUnsavedChanges()) {
+      setPendingNavigation({ type: 'select', payload: id });
+      setShowUnsavedChangesDialog(true);
+      return;
+    }
+    performSelectDocument(id);
+  };
+
+  // Perform the actual view change action
+  const performViewChange = (view: ViewType) => {
     setCurrentView(view);
+  };
+
+  const handleViewChange = (view: ViewType) => {
+    // Don't prompt if staying on the same view
+    if (view === currentView) return;
+
+    // Only check for unsaved changes when leaving the patients view
+    if (currentView === 'patients' && hasUnsavedChanges()) {
+      setPendingNavigation({ type: 'view', payload: view });
+      setShowUnsavedChangesDialog(true);
+      return;
+    }
+    performViewChange(view);
   };
 
   const handleScheduleAppointment = async (patientId: string, date: string, notes: string, options?: {
@@ -322,6 +393,62 @@ function AppContent() {
       alert('Failed to schedule appointment. Please try again.');
       console.error('Error scheduling appointment:', err);
     }
+  };
+
+  // Execute the pending navigation after save/discard
+  const executePendingNavigation = () => {
+    if (!pendingNavigation) return;
+
+    switch (pendingNavigation.type) {
+      case 'select':
+        performSelectDocument(pendingNavigation.payload as string);
+        break;
+      case 'view':
+        performViewChange(pendingNavigation.payload as ViewType);
+        break;
+      case 'create':
+        performCreateNew();
+        break;
+    }
+    setPendingNavigation(null);
+  };
+
+  // Unsaved changes dialog handlers
+  const handleUnsavedChangesSave = async () => {
+    setShowUnsavedChangesDialog(false);
+    // Save first, then navigate
+    const docToSave = currentDocumentRef.current;
+    if (docToSave) {
+      const errors = validateDocument(docToSave);
+      if (errors.length > 0) {
+        alert('Please fix the following errors:\n' + errors.join('\n'));
+        setPendingNavigation(null);
+        return;
+      }
+      try {
+        if (isNewRef.current) {
+          await apiService.createPatient(docToSave);
+        } else {
+          await apiService.updatePatient(docToSave.id, docToSave);
+        }
+        await loadDocuments();
+        executePendingNavigation();
+      } catch (err) {
+        alert('Failed to save document. Please try again.');
+        console.error('Error saving document:', err);
+        setPendingNavigation(null);
+      }
+    }
+  };
+
+  const handleUnsavedChangesDiscard = () => {
+    setShowUnsavedChangesDialog(false);
+    executePendingNavigation();
+  };
+
+  const handleUnsavedChangesCancel = () => {
+    setShowUnsavedChangesDialog(false);
+    setPendingNavigation(null);
   };
 
   if (isLoading) {
@@ -445,6 +572,7 @@ function AppContent() {
           <PatientsView
             patients={documents}
             selectedPatient={currentDocument}
+            originalPatient={originalDocument}
             onSelectPatient={handleSelectDocument}
             onCreateNew={handleCreateNew}
             onSave={handleSaveDocument}
@@ -530,6 +658,15 @@ function AppContent() {
           onCancel={handleDuplicateCancel}
           onViewExisting={handleDuplicateViewExisting}
           onCreateAnyway={handleDuplicateCreateAnyway}
+        />
+      )}
+
+      {/* Unsaved Changes Dialog */}
+      {showUnsavedChangesDialog && (
+        <UnsavedChangesDialog
+          onSave={handleUnsavedChangesSave}
+          onDiscard={handleUnsavedChangesDiscard}
+          onCancel={handleUnsavedChangesCancel}
         />
       )}
 

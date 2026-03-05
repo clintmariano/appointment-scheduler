@@ -15,6 +15,7 @@ import {
 interface PatientsViewProps {
   patients: PatientDocument[];
   selectedPatient: PatientDocument | null;
+  originalPatient?: PatientDocument | null;
   onSelectPatient: (id: string) => void;
   onCreateNew: () => void;
   onSave: () => void;
@@ -25,6 +26,7 @@ interface PatientsViewProps {
 export function PatientsView({
   patients,
   selectedPatient,
+  originalPatient,
   onSelectPatient,
   onCreateNew,
   onSave,
@@ -183,6 +185,7 @@ export function PatientsView({
         {selectedPatient ? (
           <DocumentForm
             document={selectedPatient}
+            originalDocument={originalPatient || undefined}
             onChange={onChange}
             onSave={onSave}
             isNew={isNew}
