@@ -22,6 +22,7 @@ import { FormSection } from './FormSection';
 import { FormField } from './FormField';
 import { ImmunizationTable } from './ImmunizationTable';
 import { FollowUpManager } from './FollowUpManager';
+import { ProfilePictureUpload } from './ProfilePictureUpload';
 import { formatDateObj } from '../utils/documentUtils';
 import { Save, Printer, Menu, Plus, Trash2, Eye } from 'lucide-react';
 
@@ -267,50 +268,64 @@ export function DocumentForm({ document, originalDocument, onChange, onSave, isN
       <div className="w-full px-4 sm:px-6 lg:px-8 pb-4 sm:pb-6 space-y-4 sm:space-y-5">
         {/* Patient Information */}
         <FormSection title="Patient Information">
-          {/* Row 1: Surname, Given Name, Birth Date */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4">
-            <FormField
-              label="Surname"
-              value={surname}
-              onChange={(value) => {
-                setSurname(value);
-                updatePatientName(value, givenName);
-              }}
-              required
-            />
-            <FormField
-              label="Given Name"
-              value={givenName}
-              onChange={(value) => {
-                setGivenName(value);
-                updatePatientName(surname, value);
-              }}
-              required
-            />
-            <FormField
-              label="Birth Date"
-              value={document.birthday}
-              onChange={(value) => updateField('birthday', value)}
-              type="date"
-              required
-            />
-          </div>
+          {/* Profile Picture + Form Fields Layout */}
+          <div className="flex gap-4 lg:gap-6">
+            {/* Profile Picture - spans both rows */}
+            <div className="flex-shrink-0">
+              <ProfilePictureUpload
+                imageUrl={document.profilePictureUrl}
+                onImageChange={(url) => updateField('profilePictureUrl', url)}
+              />
+            </div>
 
-          {/* Row 2: Address (2/3), Contact Numbers (1/3) */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4 mt-4">
-            <FormField
-              label="Address"
-              value={document.address}
-              onChange={(value) => updateField('address', value)}
-              className="sm:col-span-2"
-              required
-            />
-            <FormField
-              label="Contact Numbers"
-              value={document.contactNumbers}
-              onChange={(value) => updateField('contactNumbers', value)}
-              required
-            />
+            {/* Form fields container */}
+            <div className="flex-1 space-y-4">
+              {/* Row 1: Surname, Given Name, Birth Date */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4">
+                <FormField
+                  label="Surname"
+                  value={surname}
+                  onChange={(value) => {
+                    setSurname(value);
+                    updatePatientName(value, givenName);
+                  }}
+                  required
+                />
+                <FormField
+                  label="Given Name"
+                  value={givenName}
+                  onChange={(value) => {
+                    setGivenName(value);
+                    updatePatientName(surname, value);
+                  }}
+                  required
+                />
+                <FormField
+                  label="Birth Date"
+                  value={document.birthday}
+                  onChange={(value) => updateField('birthday', value)}
+                  type="date"
+                  required
+                />
+              </div>
+
+              {/* Row 2: Address (2/3), Contact Numbers (1/3) */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4">
+                <FormField
+                  label="Address"
+                  value={document.address}
+                  onChange={(value) => updateField('address', value)}
+                  className="sm:col-span-2"
+                  required
+                />
+                <FormField
+                  label="Contact Numbers"
+                  value={document.contactNumbers}
+                  onChange={(value) => updateField('contactNumbers', value)}
+                  required
+                />
+              </div>
+            </div>
           </div>
 
           {/* Emergency Contact */}

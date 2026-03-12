@@ -231,6 +231,7 @@ const patientSchema = new mongoose.Schema({
   address: { type: String, default: '' },
   contactNumbers: { type: String, default: '' },
   emergencyContacts: [emergencyContactSchema],
+  profilePictureUrl: { type: String, default: '' },
 
   // ===== OBSTETRIC HISTORY =====
   gravida: { type: Number },

@@ -223,6 +223,7 @@ export interface PatientDocument {
   address: string;
   contactNumbers: string;
   emergencyContacts: EmergencyContact[];
+  profilePictureUrl?: string;     // URL to patient's profile picture
 
   // Obstetric History
   gravida?: number;               // Gravidity - Number of pregnancies
@@ -484,6 +485,7 @@ export const createEmptyPatientDocument = (): PatientDocument => ({
   address: '',
   contactNumbers: '',
   emergencyContacts: [],
+  profilePictureUrl: '',
   gravida: undefined,
   para: undefined,
   obstetricOutcomes: createEmptyObstetricOutcomes(),

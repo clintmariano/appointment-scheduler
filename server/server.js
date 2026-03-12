@@ -110,10 +110,14 @@ app.use((req, res, next) => {
   next();
 });
 
+// Serve uploaded files (for local storage mode)
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // Routes
 app.use('/api/patients', require('./routes/patients'));
 app.use('/api/import', require('./routes/import'));
 app.use('/api/sms', require('./routes/sms'));
+app.use('/api/upload', require('./routes/upload'));
 
 // Health check with DB status
 app.get('/api/health', (req, res) => {
