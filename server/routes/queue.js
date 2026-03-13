@@ -93,7 +93,7 @@ router.get('/:id', simpleAuth, async (req, res) => {
  */
 router.post('/walk-in', simpleAuth, async (req, res) => {
   try {
-    const { patientId, patientName, patientBirthday, urgency, attributes, notes } = req.body;
+    const { patientId, patientName, patientBirthday, urgency, attributes, notes, queueDate } = req.body;
 
     if (!patientName) {
       return res.status(400).json({ message: 'Patient name is required' });
@@ -106,6 +106,7 @@ router.post('/walk-in', simpleAuth, async (req, res) => {
       urgency,
       attributes,
       notes,
+      queueDate,
       createdBy: req.userId
     });
 

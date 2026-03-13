@@ -244,7 +244,8 @@ export function QueueBoard({ patients, userRole }: QueueBoardProps) {
     setIsActionLoading(true);
     try {
       const effectiveDate = getEffectiveDate();
-      await queueApi.addWalkIn({
+      console.log('handleAddWalkIn - effectiveDate:', effectiveDate, 'urgency:', data.urgency);
+      const payload = {
         patientId: data.patientId,
         patientName: data.patientName,
         patientBirthday: data.patientBirthday,
@@ -252,7 +253,9 @@ export function QueueBoard({ patients, userRole }: QueueBoardProps) {
         attributes: { patientGroup: data.patientGroup },
         notes: data.notes,
         queueDate: effectiveDate // Pass the simulation date for queue filtering
-      });
+      };
+      console.log('handleAddWalkIn - payload:', payload);
+      await queueApi.addWalkIn(payload);
       setShowAddWalkIn(false);
       await fetchQueue();
     } catch (err) {
