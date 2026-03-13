@@ -66,7 +66,6 @@ class QueueService {
    */
   async getTodayQueue(tenantId = 'default', locationId = 'main', statusFilter = ['waiting', 'called', 'in_progress'], dateStr = null) {
     const { start, end } = this.getDateRange(dateStr);
-    console.log('getTodayQueue - dateStr:', dateStr, 'start:', start.toISOString(), 'end:', end.toISOString());
 
     const tickets = await QueueTicket.find({
       tenantId,
@@ -74,8 +73,6 @@ class QueueService {
       status: { $in: statusFilter },
       queueEnteredAt: { $gte: start, $lte: end }
     }).lean();
-
-    console.log('getTodayQueue - found tickets:', tickets.length, 'tickets:', tickets.map(t => ({ id: t.id, queueEnteredAt: t.queueEnteredAt.toISOString() })));
 
     // Sort tickets by priority
     const sorted = this.engine.sortQueue(tickets);
@@ -152,9 +149,6 @@ class QueueService {
     if (data.queueDate) {
       // Use the simulation date at midnight Manila time
       queueEnteredAt = new Date(`${data.queueDate}T00:00:00+08:00`);
-      console.log('createFromAppointment/addWalkIn - using queueDate:', data.queueDate, 'queueEnteredAt:', queueEnteredAt.toISOString());
-    } else {
-      console.log('createFromAppointment/addWalkIn - using current time, queueEnteredAt:', queueEnteredAt.toISOString());
     }
 
     const ticket = new QueueTicket({
@@ -188,8 +182,6 @@ class QueueService {
    * @returns {Object} Created ticket
    */
   async createFromAppointment(data) {
-    console.log('createFromAppointment called - appointmentId:', data.appointmentId, 'queueDate:', data.queueDate);
-
     // Check if ticket already exists for this appointment
     const existing = await QueueTicket.findOne({
       appointmentId: data.appointmentId,
@@ -201,9 +193,6 @@ class QueueService {
     if (data.queueDate) {
       // Use the simulation date at midnight Manila time
       queueEnteredAt = new Date(`${data.queueDate}T00:00:00+08:00`);
-      console.log('createFromAppointment - using queueDate:', data.queueDate, 'queueEnteredAt:', queueEnteredAt.toISOString());
-    } else {
-      console.log('createFromAppointment - using current time, queueEnteredAt:', queueEnteredAt.toISOString());
     }
 
     // If existing ticket found and we're using a simulation date, update it
@@ -216,7 +205,6 @@ class QueueService {
 
       // If the dates differ by more than a day, update the ticket
       if (Math.abs(existingTime - newTime) > oneDay) {
-        console.log('createFromAppointment - updating existing ticket from', existing.queueEnteredAt.toISOString(), 'to', queueEnteredAt.toISOString());
         existing.queueEnteredAt = queueEnteredAt;
         existing.scheduledAt = data.scheduledAt ? new Date(data.scheduledAt) : queueEnteredAt;
         existing.priorityRank = this.engine.calculateRank(existing);
@@ -225,7 +213,6 @@ class QueueService {
         return existing.toObject();
       }
 
-      console.log('createFromAppointment - existing ticket found with same date, returning:', existing.id, 'queueEnteredAt:', existing.queueEnteredAt.toISOString());
       return existing.toObject();
     }
 

@@ -52,10 +52,7 @@ export function QueueBoard({ patients, userRole }: QueueBoardProps) {
 
       // Pass simulation date to API for filtering (convert null to undefined)
       const dateParam = dateToUse || undefined;
-      console.log('fetchQueue - calling API with dateParam:', dateParam);
       const data = await queueApi.getTodayQueue('default', 'main', undefined, dateParam);
-      console.log('fetchQueue - received data:', data);
-      console.log('fetchQueue - waiting count:', data.waiting.length, 'called:', data.called.length);
       setQueue(data);
 
       // Get effective date for auto-reset check
@@ -124,8 +121,6 @@ export function QueueBoard({ patients, userRole }: QueueBoardProps) {
   // Handle start queue - adds scheduled appointments and sets status to active
   const handleStartQueue = async () => {
     const effectiveDate = getEffectiveDate();
-    console.log('handleStartQueue - effectiveDate:', effectiveDate);
-    console.log('handleStartQueue - patients:', patients);
 
     // Collect all scheduled appointments for the effective date
     const appointmentsToAdd: Array<{
@@ -136,22 +131,17 @@ export function QueueBoard({ patients, userRole }: QueueBoardProps) {
     for (const patient of patients) {
       if (patient.followUpDates) {
         for (const followUp of patient.followUpDates) {
-          console.log('Checking appointment:', followUp.id, 'date:', followUp.date, 'completed:', followUp.completed, 'priority:', followUp.priority);
           // Skip if already processed
           if (processedAppointments.has(followUp.id)) {
-            console.log('Skipping already processed:', followUp.id);
             continue;
           }
           // Only process effective date's scheduled appointments that aren't completed
           if (followUp.date === effectiveDate && !followUp.completed && followUp.priority !== 'emergency' && followUp.priority !== 'urgent') {
-            console.log('Adding to queue:', followUp.id, patient.patientName);
             appointmentsToAdd.push({ followUp, patient });
           }
         }
       }
     }
-
-    console.log('appointmentsToAdd count:', appointmentsToAdd.length);
 
     // Sort all appointments by ID (first booked first)
     appointmentsToAdd.sort((a, b) => a.followUp.id.localeCompare(b.followUp.id));
@@ -162,7 +152,7 @@ export function QueueBoard({ patients, userRole }: QueueBoardProps) {
       try {
         // Use incrementing seconds to ensure correct ordering in priority engine
         const orderTime = String(i).padStart(6, '0'); // 000000, 000001, etc.
-        const payload = {
+        await queueApi.createFromAppointment({
           appointmentId: followUp.id,
           patientId: patient.id,
           patientName: patient.patientName,
@@ -174,13 +164,9 @@ export function QueueBoard({ patients, userRole }: QueueBoardProps) {
           scheduledAt: `${followUp.date}T00:${orderTime.slice(0, 2)}:${orderTime.slice(2, 4)}`,
           notes: followUp.notes,
           queueDate: effectiveDate // Pass the simulation date for queue filtering
-        };
-        console.log('Creating queue ticket:', payload);
-        await queueApi.createFromAppointment(payload);
+        });
         setProcessedAppointments(prev => new Set(prev).add(followUp.id));
-        console.log('Successfully created ticket for:', followUp.id);
       } catch (err) {
-        console.error('Error creating ticket for', followUp.id, ':', err);
         // Ignore errors (likely duplicate)
       }
     }
@@ -244,8 +230,7 @@ export function QueueBoard({ patients, userRole }: QueueBoardProps) {
     setIsActionLoading(true);
     try {
       const effectiveDate = getEffectiveDate();
-      console.log('handleAddWalkIn - effectiveDate:', effectiveDate, 'urgency:', data.urgency);
-      const payload = {
+      await queueApi.addWalkIn({
         patientId: data.patientId,
         patientName: data.patientName,
         patientBirthday: data.patientBirthday,
@@ -253,9 +238,7 @@ export function QueueBoard({ patients, userRole }: QueueBoardProps) {
         attributes: { patientGroup: data.patientGroup },
         notes: data.notes,
         queueDate: effectiveDate // Pass the simulation date for queue filtering
-      };
-      console.log('handleAddWalkIn - payload:', payload);
-      await queueApi.addWalkIn(payload);
+      });
       setShowAddWalkIn(false);
       await fetchQueue();
     } catch (err) {

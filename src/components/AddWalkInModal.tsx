@@ -29,9 +29,19 @@ export function AddWalkInModal({
   const [selectedPatient, setSelectedPatient] = useState<PatientDocument | null>(null);
   const [patientName, setPatientName] = useState('');
   const [urgency, setUrgency] = useState<TicketUrgency>('normal');
-  const [patientGroup, setPatientGroup] = useState<PatientGroup>('');
+  const [patientGroup, setPatientGroup] = useState<PatientGroup>('general');
   const [notes, setNotes] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
+
+  // Auto-set patient group to pregnant when urgency is urgent or emergency
+  useEffect(() => {
+    if (urgency === 'urgent' || urgency === 'emergency') {
+      setPatientGroup('pregnant');
+    } else if (!selectedPatient) {
+      // Only reset to general if no patient is selected (patient selection might override this)
+      setPatientGroup('general');
+    }
+  }, [urgency]);
 
   // Filter patients based on search
   const filteredPatients = patients.filter(p =>
@@ -45,7 +55,7 @@ export function AddWalkInModal({
       setSelectedPatient(null);
       setPatientName('');
       setUrgency('normal');
-      setPatientGroup('');
+      setPatientGroup('general');
       setNotes('');
     }
   }, [isOpen]);
@@ -208,16 +218,21 @@ export function AddWalkInModal({
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Patient Type
+              {(urgency === 'urgent' || urgency === 'emergency') && (
+                <span className="ml-2 text-xs text-amber-600 font-normal">(Always OB for urgent/emergency)</span>
+              )}
             </label>
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={() => setPatientGroup('pregnant')}
+                disabled={urgency === 'urgent' || urgency === 'emergency'}
                 className={`
                   flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors border
                   ${patientGroup === 'pregnant'
                     ? 'bg-teal-100 border-teal-300 text-teal-700'
                     : 'bg-white border-gray-200 text-gray-500 hover:bg-teal-50'}
+                  ${(urgency === 'urgent' || urgency === 'emergency') ? 'cursor-default opacity-100' : ''}
                 `}
               >
                 OB Patient
@@ -225,11 +240,15 @@ export function AddWalkInModal({
               <button
                 type="button"
                 onClick={() => setPatientGroup('general')}
+                disabled={urgency === 'urgent' || urgency === 'emergency'}
                 className={`
                   flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors border
                   ${patientGroup === 'general'
                     ? 'bg-gray-200 border-gray-300 text-gray-700'
                     : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'}
+                  ${(urgency === 'urgent' || urgency === 'emergency')
+                    ? 'opacity-50 cursor-not-allowed'
+                    : ''}
                 `}
               >
                 Non-OB
