@@ -248,10 +248,11 @@ class QueueService {
    * @param {String} locationId - Location ID
    * @param {String} servedBy - Staff member ID
    * @param {String} deskNumber - Desk/room number
+   * @param {String} dateStr - Optional date string (YYYY-MM-DD) for simulation
    * @returns {Object|null} Called ticket or null if queue empty
    */
-  async callNext(tenantId = 'default', locationId = 'main', servedBy, deskNumber) {
-    const { start, end } = this.getTodayRange();
+  async callNext(tenantId = 'default', locationId = 'main', servedBy, deskNumber, dateStr = null) {
+    const { start, end } = this.getDateRange(dateStr);
 
     // Get all waiting tickets for today
     const waitingTickets = await QueueTicket.find({

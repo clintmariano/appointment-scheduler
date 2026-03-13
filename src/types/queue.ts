@@ -116,6 +116,7 @@ export interface CallNextRequest {
   tenantId?: string;
   locationId?: string;
   deskNumber?: string;
+  date?: string;
 }
 
 export interface UpdateStatusRequest {

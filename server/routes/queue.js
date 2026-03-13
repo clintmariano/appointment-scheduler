@@ -177,13 +177,14 @@ router.post('/from-appointment', simpleAuth, async (req, res) => {
  */
 router.post('/call-next', simpleAuth, async (req, res) => {
   try {
-    const { tenantId = 'default', locationId = 'main', deskNumber } = req.body;
+    const { tenantId = 'default', locationId = 'main', deskNumber, date } = req.body;
 
     const ticket = await queueService.callNext(
       tenantId,
       locationId,
       req.userId,
-      deskNumber
+      deskNumber,
+      date || null
     );
 
     if (!ticket) {

@@ -253,7 +253,8 @@ export function QueueBoard({ patients, userRole }: QueueBoardProps) {
   const handleCallNext = async () => {
     setIsActionLoading(true);
     try {
-      const ticket = await queueApi.callNext({});
+      const effectiveDate = getEffectiveDate();
+      const ticket = await queueApi.callNext({ date: effectiveDate });
       if (!ticket) {
         alert('No patients waiting in queue');
       }
