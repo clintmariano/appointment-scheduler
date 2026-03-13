@@ -24,3 +24,7 @@ dist-ssr
 *.sw?
 .env
 .claude/
+dev-dist/sw.js
+dev-dist/sw.js
+nul
+dev-dist/sw.js

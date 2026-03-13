@@ -8,11 +8,13 @@ interface ScheduleAppointmentPanelProps {
   onClose: () => void;
   patients: PatientDocument[];
   selectedPatient: PatientDocument | null;
+  preselectedDate?: string;
   onSaveAppointment: (patientId: string, date: string, notes: string, options?: {
     startTime?: string;
     endTime?: string;
     priority?: AppointmentPriority;
   }) => void;
+  appointmentCountForDate?: (date: string) => number;
 }
 
 // Time options for appointment scheduling
@@ -22,6 +24,8 @@ const TIME_OPTIONS = [
   '14:00', '14:30', '15:00', '15:30', '16:00', '16:30',
   '17:00', '17:30'
 ];
+
+const MAX_APPOINTMENTS_PER_DAY = 10;
 
 const formatTimeForDisplay = (time: string): string => {
   const [hours, minutes] = time.split(':').map(Number);
@@ -35,19 +39,34 @@ export function ScheduleAppointmentPanel({
   onClose,
   patients,
   selectedPatient,
-  onSaveAppointment
+  preselectedDate,
+  onSaveAppointment,
+  appointmentCountForDate
 }: ScheduleAppointmentPanelProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPatientForAppointment, setSelectedPatientForAppointment] = useState<PatientDocument | null>(null);
   const [appointmentDate, setAppointmentDate] = useState('');
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime] = useState('09:30');
-  const [priority, setPriority] = useState<AppointmentPriority>('routine');
   const [notes, setNotes] = useState('');
+  const [error, setError] = useState('');
   const dateInputRef = useRef<HTMLInputElement>(null);
 
   // Get today's date in YYYY-MM-DD format for min date validation
   const today = new Date().toISOString().split('T')[0];
+
+  // Calculate current appointment count for selected date
+  const currentCount = appointmentDate && appointmentCountForDate ? appointmentCountForDate(appointmentDate) : 0;
+  const isFull = currentCount >= MAX_APPOINTMENTS_PER_DAY;
+
+  // Error message for validation
+  useEffect(() => {
+    if (isFull) {
+      setError(`Maximum ${MAX_APPOINTMENTS_PER_DAY} appointments allowed per day`);
+    } else {
+      setError('');
+    }
+  }, [isFull]);
 
   // When panel opens, if there's a selected patient, use it
   useEffect(() => {
@@ -59,13 +78,12 @@ export function ScheduleAppointmentPanel({
         setSelectedPatientForAppointment(null);
         setSearchTerm('');
       }
-      setAppointmentDate('');
+      setAppointmentDate(preselectedDate || '');
       setStartTime('09:00');
       setEndTime('09:30');
-      setPriority('routine');
       setNotes('');
     }
-  }, [isOpen, selectedPatient]);
+  }, [isOpen, selectedPatient, preselectedDate]);
 
   // Calculate AOG preview if patient has LMP
   const aogPreview = selectedPatientForAppointment?.lmp && appointmentDate
@@ -91,14 +109,24 @@ export function ScheduleAppointmentPanel({
   };
 
   const handleSave = () => {
-    if (selectedPatientForAppointment && appointmentDate) {
-      onSaveAppointment(selectedPatientForAppointment.id, appointmentDate, notes, {
-        startTime,
-        endTime,
-        priority
-      });
-      onClose();
+    // Validate before saving
+    if (!selectedPatientForAppointment || !appointmentDate) {
+      setError('Please select a patient and date');
+      return;
     }
+
+    // Check if date is full
+    if (isFull) {
+      setError(`Maximum ${MAX_APPOINTMENTS_PER_DAY} appointments allowed per day`);
+      return;
+    }
+
+    onSaveAppointment(selectedPatientForAppointment.id, appointmentDate, notes, {
+      startTime,
+      endTime,
+      priority: 'routine'
+    });
+    onClose();
   };
 
   const handleCancel = () => {
@@ -107,7 +135,6 @@ export function ScheduleAppointmentPanel({
     setAppointmentDate('');
     setStartTime('09:00');
     setEndTime('09:30');
-    setPriority('routine');
     setNotes('');
     onClose();
   };
@@ -119,6 +146,13 @@ export function ScheduleAppointmentPanel({
   // Common form fields for appointments
   const renderAppointmentFields = () => (
     <div className="space-y-4">
+      {/* Error Message */}
+      {error && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+          {error}
+        </div>
+      )}
+
       {/* Date and Time Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
@@ -136,13 +170,21 @@ export function ScheduleAppointmentPanel({
             />
             <div
               onClick={() => dateInputRef.current?.showPicker()}
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm flex items-center justify-between cursor-pointer hover:border-gray-300"
+              className={`w-full px-3 py-2.5 border rounded-lg text-sm flex items-center justify-between cursor-pointer hover:border-gray-300 ${
+                isFull ? 'border-red-300 bg-red-50' : 'border-gray-200'
+              }`}
             >
               <span className={appointmentDate ? 'text-gray-700' : 'text-gray-400'}>
                 {appointmentDate ? formatDate(appointmentDate) : 'Select date'}
               </span>
-              <Calendar size={16} className="text-gray-400 flex-shrink-0" />
+              <Calendar size={16} className={`flex-shrink-0 ${isFull ? 'text-red-500' : 'text-gray-400'}`} />
             </div>
+            {appointmentDate && appointmentCountForDate && (
+              <p className={`mt-1 text-xs ${isFull ? 'text-red-500 font-medium' : 'text-gray-500'}`}>
+                {currentCount}/{MAX_APPOINTMENTS_PER_DAY} appointments
+                {isFull && ' - Fully booked'}
+              </p>
+            )}
           </div>
         </div>
 
@@ -190,48 +232,6 @@ export function ScheduleAppointmentPanel({
           </div>
         </div>
       )}
-
-      {/* Priority Selection */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Priority
-        </label>
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => setPriority('routine')}
-            className={`flex-1 min-w-[80px] px-3 py-2.5 rounded-lg text-sm font-medium border transition-all ${
-              priority === 'routine'
-                ? 'bg-green-50 border-green-300 text-green-700'
-                : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
-            }`}
-          >
-            Routine
-          </button>
-          <button
-            type="button"
-            onClick={() => setPriority('urgent')}
-            className={`flex-1 min-w-[80px] px-3 py-2.5 rounded-lg text-sm font-medium border transition-all ${
-              priority === 'urgent'
-                ? 'bg-amber-50 border-amber-300 text-amber-700'
-                : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
-            }`}
-          >
-            Urgent
-          </button>
-          <button
-            type="button"
-            onClick={() => setPriority('emergency')}
-            className={`flex-1 min-w-[80px] px-3 py-2.5 rounded-lg text-sm font-medium border transition-all ${
-              priority === 'emergency'
-                ? 'bg-red-50 border-red-300 text-red-700'
-                : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
-            }`}
-          >
-            Emergency
-          </button>
-        </div>
-      </div>
 
       {/* Notes */}
       <div>
@@ -415,7 +415,7 @@ export function ScheduleAppointmentPanel({
           </button>
           <button
             onClick={handleSave}
-            disabled={!selectedPatientForAppointment || !appointmentDate}
+            disabled={!selectedPatientForAppointment || !appointmentDate || !!error || isFull}
             className="px-5 py-2.5 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Save Appointment

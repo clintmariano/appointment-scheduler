@@ -39,6 +39,7 @@ function AppContent() {
   const [currentView, setCurrentView] = useState<ViewType>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [scheduleAppointmentOpen, setScheduleAppointmentOpen] = useState(false);
+  const [schedulePreselectedDate, setSchedulePreselectedDate] = useState<string | undefined>(undefined);
   const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] = useState(false);
   const [pendingNavigation, setPendingNavigation] = useState<{
     type: 'select' | 'view' | 'create';
@@ -395,6 +396,21 @@ function AppContent() {
     }
   };
 
+  // Get appointment count for a specific date
+  const getAppointmentCountForDate = (date: string): number => {
+    let count = 0;
+    for (const patient of documents) {
+      if (patient.followUpDates) {
+        for (const followUp of patient.followUpDates) {
+          if (followUp.date === date && !followUp.completed) {
+            count++;
+          }
+        }
+      }
+    }
+    return count;
+  };
+
   // Execute the pending navigation after save/discard
   const executePendingNavigation = () => {
     if (!pendingNavigation) return;
@@ -546,10 +562,15 @@ function AppContent() {
         </div>
         <ScheduleAppointmentPanel
           isOpen={scheduleAppointmentOpen}
-          onClose={() => setScheduleAppointmentOpen(false)}
+          onClose={() => {
+            setScheduleAppointmentOpen(false);
+            setSchedulePreselectedDate(undefined);
+          }}
           patients={documents}
           selectedPatient={null}
+          preselectedDate={schedulePreselectedDate}
           onSaveAppointment={handleScheduleAppointment}
+          appointmentCountForDate={getAppointmentCountForDate}
         />
       </div>
     );
@@ -585,7 +606,10 @@ function AppContent() {
           <AppointmentsView
             patients={documents}
             onSelectPatient={handleSelectDocument}
-            onScheduleAppointment={() => setScheduleAppointmentOpen(true)}
+            onScheduleAppointment={(date) => {
+              setSchedulePreselectedDate(date);
+              setScheduleAppointmentOpen(true);
+            }}
             onRefresh={loadDocuments}
           />
         );
@@ -673,10 +697,15 @@ function AppContent() {
       {/* Schedule Appointment Panel */}
       <ScheduleAppointmentPanel
         isOpen={scheduleAppointmentOpen}
-        onClose={() => setScheduleAppointmentOpen(false)}
+        onClose={() => {
+          setScheduleAppointmentOpen(false);
+          setSchedulePreselectedDate(undefined);
+        }}
         patients={documents}
         selectedPatient={currentView === 'patients' ? currentDocument : null}
+        preselectedDate={schedulePreselectedDate}
         onSaveAppointment={handleScheduleAppointment}
+        appointmentCountForDate={getAppointmentCountForDate}
       />
     </div>
   );

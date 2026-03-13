@@ -16,6 +16,14 @@ type AppointmentAlertListener = (data: {
 
 const listeners: Set<AppointmentAlertListener> = new Set();
 
+// Queue update listeners
+type QueueUpdateListener = (data: {
+  action: string;
+  ticket?: unknown;
+}) => void;
+
+const queueListeners: Set<QueueUpdateListener> = new Set();
+
 // Get socket server URL
 function getSocketUrl(): string {
   // In development, connect to the dev server port
@@ -27,7 +35,7 @@ function getSocketUrl(): string {
 }
 
 // Initialize socket connection
-export function initSocket(role: 'doctor' | 'assistant'): void {
+export function initSocket(role: 'doctor' | 'assistant' | 'assistant1' | 'assistant2'): void {
   if (socket?.connected) {
     console.log('Socket already connected');
     return;
@@ -61,6 +69,12 @@ export function initSocket(role: 'doctor' | 'assistant'): void {
   socket.on('appointment_alert', (data) => {
     console.log('Received appointment alert:', data);
     listeners.forEach(listener => listener(data));
+  });
+
+  // Listen for queue updates
+  socket.on('queue_updated', (data) => {
+    console.log('Received queue update:', data);
+    queueListeners.forEach(listener => listener(data));
   });
 }
 
@@ -123,4 +137,12 @@ export function onAppointmentAlert(listener: AppointmentAlertListener): () => vo
 // Check if socket is connected
 export function isSocketConnected(): boolean {
   return socket?.connected ?? false;
+}
+
+// Subscribe to queue updates
+export function onQueueUpdate(listener: QueueUpdateListener): () => void {
+  queueListeners.add(listener);
+  return () => {
+    queueListeners.delete(listener);
+  };
 }

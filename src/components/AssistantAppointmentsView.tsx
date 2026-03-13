@@ -1,25 +1,23 @@
 import React, { useState, useMemo } from 'react';
-import { PatientDocument, FollowUpDate, AppointmentPriority, formatAOG, AOG } from '../types';
+import { PatientDocument, FollowUpDate } from '../types';
 import { formatDate } from '../utils/documentUtils';
 import {
   Calendar,
   ChevronLeft,
   ChevronRight,
+  Plus,
   User,
-  AlertCircle,
-  X
+  AlertCircle
 } from 'lucide-react';
 
-interface AppointmentsViewProps {
+interface AssistantAppointmentsViewProps {
   patients: PatientDocument[];
-  onSelectPatient: (id: string) => void;
   onScheduleAppointment: (date?: string) => void;
-  onRefresh?: () => void;
 }
 
 const MAX_APPOINTMENTS_PER_DAY = 10;
 
-export function AppointmentsView({ patients, onSelectPatient, onScheduleAppointment }: AppointmentsViewProps) {
+export function AssistantAppointmentsView({ patients, onScheduleAppointment }: AssistantAppointmentsViewProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
@@ -102,12 +100,8 @@ export function AppointmentsView({ patients, onSelectPatient, onScheduleAppointm
 
   const selectedDateAppointments = selectedDate ? appointmentsByDate[selectedDate] || [] : [];
 
-  const handleAppointmentClick = (appointment: FollowUpDate & { patientName: string; patientId: string }) => {
-    onSelectPatient(appointment.patientId);
-  };
-
   return (
-    <div className="flex-1 flex flex-col lg:flex-row gap-4 p-4 overflow-hidden bg-slate-50">
+    <div className="flex-1 flex flex-col lg:flex-row gap-4 p-4 overflow-hidden">
       {/* Calendar */}
       <div className="lg:w-2/3 bg-white rounded-xl border border-gray-200 p-4 flex flex-col overflow-hidden">
         {/* Calendar Header */}
@@ -219,7 +213,7 @@ export function AppointmentsView({ patients, onSelectPatient, onScheduleAppointm
                   onClick={() => onScheduleAppointment(selectedDate)}
                   className="flex items-center gap-1.5 px-2.5 py-1.5 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors text-xs font-medium"
                 >
-                  <Calendar size={14} />
+                  <Plus size={14} />
                   Schedule
                 </button>
               )}
@@ -240,11 +234,10 @@ export function AppointmentsView({ patients, onSelectPatient, onScheduleAppointm
             ) : (
               <div className="space-y-2">
                 {selectedDateAppointments.map((apt, index) => (
-                  <button
+                  <div
                     key={apt.id}
-                    onClick={() => handleAppointmentClick(apt)}
                     className={`
-                      w-full text-left p-2 rounded-lg border transition-all hover:shadow-md
+                      p-2 rounded-lg border
                       ${apt.priority === 'emergency' ? 'border-red-200 bg-red-50' :
                         apt.priority === 'urgent' ? 'border-amber-200 bg-amber-50' :
                         'border-gray-200 bg-gray-50'}
@@ -277,12 +270,7 @@ export function AppointmentsView({ patients, onSelectPatient, onScheduleAppointm
                     {apt.notes && (
                       <p className="mt-1 text-xs text-gray-600">{apt.notes}</p>
                     )}
-                    {apt.aog && (
-                      <p className="mt-1 text-xs text-gray-500">
-                        AOG: {formatAOG(apt.aog)}
-                      </p>
-                    )}
-                  </button>
+                  </div>
                 ))}
               </div>
             )}

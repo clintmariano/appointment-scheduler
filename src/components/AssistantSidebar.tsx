@@ -1,39 +1,31 @@
 import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import {
-  LayoutDashboard,
-  Users,
+  ListOrdered,
   Calendar,
-  ClipboardList,
-  BarChart3,
-  Settings,
   LogOut,
   Stethoscope,
-  X,
-  ListOrdered
+  X
 } from 'lucide-react';
 
-export type ViewType = 'dashboard' | 'patients' | 'appointments' | 'queue' | 'tasks' | 'analytics' | 'settings';
+export type AssistantViewType = 'queue' | 'appointments';
 
-interface SidebarProps {
-  currentView: ViewType;
-  onViewChange: (view: ViewType) => void;
+interface AssistantSidebarProps {
+  currentView: AssistantViewType;
+  onViewChange: (view: AssistantViewType) => void;
   isOpen?: boolean;
   onClose?: () => void;
 }
 
-export function Sidebar({ currentView, onViewChange, isOpen = true, onClose }: SidebarProps) {
+export function AssistantSidebar({ currentView, onViewChange, isOpen = true, onClose }: AssistantSidebarProps) {
   const { logout } = useAuth();
 
-  const mainNavItems: { id: ViewType; label: string; icon: React.ReactNode }[] = [
-    { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
-    { id: 'patients', label: 'Patients', icon: <Users size={20} /> },
+  const navItems: { id: AssistantViewType; label: string; icon: React.ReactNode }[] = [
+    { id: 'queue', label: 'Queue', icon: <ListOrdered size={20} /> },
     { id: 'appointments', label: 'Appointments', icon: <Calendar size={20} /> },
-    // { id: 'tasks', label: 'Tasks', icon: <ClipboardList size={20} /> },
-    // { id: 'analytics', label: 'Analytics', icon: <BarChart3 size={20} /> },
   ];
 
-  const handleNavClick = (view: ViewType) => {
+  const handleNavClick = (view: AssistantViewType) => {
     onViewChange(view);
     if (onClose && window.innerWidth < 1024) {
       onClose();
@@ -66,9 +58,12 @@ export function Sidebar({ currentView, onViewChange, isOpen = true, onClose }: S
               <div className="bg-gradient-to-br from-teal-500 to-cyan-500 p-2 rounded-xl">
                 <Stethoscope size={24} className="text-white" />
               </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
-                MyOB
-              </span>
+              <div>
+                <span className="text-xl font-bold bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
+                  MyOB
+                </span>
+                <p className="text-xs text-gray-500">Assistant</p>
+              </div>
             </div>
             {onClose && (
               <button
@@ -81,9 +76,9 @@ export function Sidebar({ currentView, onViewChange, isOpen = true, onClose }: S
           </div>
         </div>
 
-        {/* Main Navigation */}
+        {/* Navigation */}
         <nav className="flex-1 p-3 space-y-1">
-          {mainNavItems.map((item) => (
+          {navItems.map((item) => (
             <button
               key={item.id}
               onClick={() => handleNavClick(item.id)}
@@ -101,21 +96,8 @@ export function Sidebar({ currentView, onViewChange, isOpen = true, onClose }: S
           ))}
         </nav>
 
-        {/* Bottom Navigation */}
-        <div className="p-3 border-t border-gray-100 space-y-1">
-          {/* <button
-            onClick={() => handleNavClick('settings')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-              currentView === 'settings'
-                ? 'bg-teal-50 text-teal-700 border border-teal-200'
-                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-            }`}
-          >
-            <span className={currentView === 'settings' ? 'text-teal-600' : 'text-gray-400'}>
-              <Settings size={20} />
-            </span>
-            Settings
-          </button> */}
+        {/* Logout */}
+        <div className="p-3 border-t border-gray-100">
           <button
             onClick={logout}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-gray-600 hover:bg-red-50 hover:text-red-600 transition-all"

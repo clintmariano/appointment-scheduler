@@ -118,6 +118,7 @@ app.use('/api/patients', require('./routes/patients'));
 app.use('/api/import', require('./routes/import'));
 app.use('/api/sms', require('./routes/sms'));
 app.use('/api/upload', require('./routes/upload'));
+app.use('/api/queue', require('./routes/queue'));
 
 // Health check with DB status
 app.get('/api/health', (req, res) => {

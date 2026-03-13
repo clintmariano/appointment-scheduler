@@ -385,8 +385,12 @@ export const VACCINES = [
   'COVID VACCINE'
 ];
 
-// Helper to generate unique IDs
-export const generateId = (): string => Math.random().toString(36).substring(2, 11);
+// Helper to generate unique IDs (timestamp-based for correct ordering)
+export const generateId = (): string => {
+  const timestamp = Date.now().toString(36);
+  const random = Math.random().toString(36).substring(2, 6);
+  return `${timestamp}_${random}`;
+};
 
 // Default empty values for new records
 export const createEmptyObstetricOutcomes = (): ObstetricOutcomes => ({
