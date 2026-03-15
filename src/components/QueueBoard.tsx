@@ -673,6 +673,7 @@ export function QueueBoard({ patients, userRole }: QueueBoardProps) {
       {selectedTicket && (
         <QueueActionModal
           ticket={selectedTicket}
+          queueStatus={queueStatus}
           onClose={() => setSelectedTicket(null)}
           onCall={handleCall}
           onStartService={handleStartService}

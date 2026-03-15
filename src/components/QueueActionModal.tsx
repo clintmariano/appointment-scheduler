@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { QueueTicket, TicketUrgency, getStatusDisplay, formatWaitTime } from '../types/queue';
+import { QueueTicket, QueueStatus, TicketUrgency, getStatusDisplay, formatWaitTime } from '../types/queue';
 import {
   X,
   Phone,
@@ -15,6 +15,7 @@ import {
 
 interface QueueActionModalProps {
   ticket: QueueTicket;
+  queueStatus: QueueStatus;
   onClose: () => void;
   onCall: () => void;
   onStartService: () => void;
@@ -27,6 +28,7 @@ interface QueueActionModalProps {
 
 export function QueueActionModal({
   ticket,
+  queueStatus,
   onClose,
   onCall,
   onStartService,
@@ -36,6 +38,7 @@ export function QueueActionModal({
   onChangeUrgency,
   isLoading = false
 }: QueueActionModalProps) {
+  const queueActive = queueStatus === 'active';
   const [showUrgencyMenu, setShowUrgencyMenu] = useState(false);
 
   const formatDate = (dateStr: string) => {
@@ -171,22 +174,24 @@ export function QueueActionModal({
           {ticket.status === 'waiting' && (
             <button
               onClick={onCall}
-              disabled={isLoading}
-              className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+              disabled={isLoading || !queueActive}
+              title={!queueActive ? 'Queue must be started first' : undefined}
+              className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Phone size={18} />
-              Call Patient
+              {queueActive ? 'Call Patient' : 'Call Patient (Start Queue First)'}
             </button>
           )}
 
           {ticket.status === 'called' && (
             <button
               onClick={onStartService}
-              disabled={isLoading}
-              className="w-full py-3 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+              disabled={isLoading || !queueActive}
+              title={!queueActive ? 'Queue must be started first' : undefined}
+              className="w-full py-3 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Play size={18} />
-              Start Service
+              {queueActive ? 'Start Service' : 'Start Service (Start Queue First)'}
             </button>
           )}
 
