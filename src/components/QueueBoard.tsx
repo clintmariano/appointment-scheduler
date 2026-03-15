@@ -55,8 +55,8 @@ export function QueueBoard({ patients, userRole }: QueueBoardProps) {
       const data = await queueApi.getTodayQueue('default', 'main', undefined, dateParam);
       setQueue(data);
 
-      // Get effective date for auto-reset check
-      const effectiveDate = dateToUse || new Date().toISOString().split('T')[0];
+      // Get effective date for auto-reset check (use Manila timezone)
+      const effectiveDate = dateToUse || new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
       const savedQueueDate = localStorage.getItem('queue_date');
       const savedStatus = localStorage.getItem('queue_status') as QueueStatus | null;
 
@@ -80,12 +80,12 @@ export function QueueBoard({ patients, userRole }: QueueBoardProps) {
     }
   }, []);
 
-  // Get the effective date (simulation date if set, otherwise today)
+  // Get the effective date (simulation date if set, otherwise today in Manila timezone)
   const getEffectiveDate = useCallback((): string => {
     if (simulationDate) {
       return simulationDate;
     }
-    return new Date().toISOString().split('T')[0];
+    return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
   }, [simulationDate]);
 
   // Handle simulation date change
@@ -96,7 +96,7 @@ export function QueueBoard({ patients, userRole }: QueueBoardProps) {
       localStorage.setItem('queue_date', date);
     } else {
       localStorage.removeItem('queue_simulation_date');
-      const today = new Date().toISOString().split('T')[0];
+      const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
       localStorage.setItem('queue_date', today);
     }
 

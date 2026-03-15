@@ -230,15 +230,6 @@ export function AssistantView() {
     loadPatients();
   }, [loadPatients]);
 
-  // Auto-refresh every 30 seconds (only when viewing Queue)
-  useEffect(() => {
-    if (currentView !== 'queue') return; // Only refresh when on Queue view
-
-    const interval = setInterval(() => {
-      loadPatients();
-    }, 30000);
-    return () => clearInterval(interval);
-  }, [loadPatients, currentView]);
 
   // Get appointment count for a date
   const getAppointmentCountForDate = (date: string): number => {
