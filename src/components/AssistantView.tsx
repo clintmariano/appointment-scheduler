@@ -1,10 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { PatientDocument, FollowUpDate, calculateAOG } from '../types';
 import { apiService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { QueueBoard } from './QueueBoard';
 import { AssistantSidebar, AssistantViewType } from './AssistantSidebar';
 import { AssistantAppointmentsView } from './AssistantAppointmentsView';
+import { PatientsView } from './PatientsView';
+import { createEmptyDocument, validateDocument } from '../utils/documentUtils';
 import { RefreshCw, Menu, X, Search, Calendar } from 'lucide-react';
 import * as queueApi from '../services/queueService';
 
@@ -211,6 +213,11 @@ export function AssistantView() {
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [scheduleSelectedDate, setScheduleSelectedDate] = useState<string | undefined>(undefined);
 
+  // Patient management state
+  const [currentDocument, setCurrentDocument] = useState<PatientDocument | null>(null);
+  const [originalDocument, setOriginalDocument] = useState<PatientDocument | null>(null);
+  const [isNew, setIsNew] = useState(false);
+
   const loadPatients = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -245,6 +252,65 @@ export function AssistantView() {
     }
     return count;
   };
+
+  // Patient management handlers
+  const handleSelectPatient = (id: string) => {
+    const doc = patients.find(p => p.id === id);
+    if (doc) {
+      setCurrentDocument(doc);
+      setOriginalDocument(JSON.parse(JSON.stringify(doc)));
+      setIsNew(false);
+    }
+  };
+
+  const handleCreateNew = () => {
+    const newDoc = createEmptyDocument();
+    setCurrentDocument(newDoc);
+    setOriginalDocument(null);
+    setIsNew(true);
+  };
+
+  const handleSaveDocument = async () => {
+    if (!currentDocument) return;
+
+    const errors = validateDocument(currentDocument);
+    if (errors.length > 0) {
+      alert('Please fix the following errors:\n' + errors.join('\n'));
+      return;
+    }
+
+    try {
+      let savedDoc;
+      if (isNew) {
+        savedDoc = await apiService.createPatient(currentDocument);
+        setIsNew(false);
+      } else {
+        savedDoc = await apiService.updatePatient(currentDocument.id, currentDocument);
+      }
+      await loadPatients();
+      alert('Document saved successfully!');
+      // Re-select the saved document to refresh state
+      const refreshed = patients.find(p => p.id === savedDoc.id);
+      if (refreshed) {
+        setCurrentDocument(refreshed);
+        setOriginalDocument(JSON.parse(JSON.stringify(refreshed)));
+      }
+    } catch (err) {
+      alert('Failed to save document. Please try again.');
+      console.error('Error saving document:', err);
+    }
+  };
+
+  // Keep selected document in sync when patients list refreshes
+  useEffect(() => {
+    if (currentDocument && !isNew) {
+      const updated = patients.find(p => p.id === currentDocument.id);
+      if (updated) {
+        setCurrentDocument(updated);
+        setOriginalDocument(JSON.parse(JSON.stringify(updated)));
+      }
+    }
+  }, [patients]);
 
   // Handle scheduling appointment
   const handleScheduleAppointment = async (patientId: string, date: string, startTime: string, notes: string) => {
@@ -334,17 +400,30 @@ export function AssistantView() {
             <Menu size={20} />
           </button>
           <h1 className="font-semibold text-gray-900">
-            {currentView === 'queue' ? 'Queue' : 'Appointments'}
+            {currentView === 'queue' ? 'Queue' : currentView === 'patients' ? 'Patients' : 'Appointments'}
           </h1>
         </div>
 
         {/* View Content */}
-        {currentView === 'queue' ? (
+        {currentView === 'queue' && (
           <QueueBoard
             patients={patients}
             userRole={user?.role || 'assistant1'}
           />
-        ) : (
+        )}
+        {currentView === 'patients' && (
+          <PatientsView
+            patients={patients}
+            selectedPatient={currentDocument}
+            originalPatient={originalDocument}
+            onSelectPatient={handleSelectPatient}
+            onCreateNew={handleCreateNew}
+            onSave={handleSaveDocument}
+            onChange={setCurrentDocument}
+            isNew={isNew}
+          />
+        )}
+        {currentView === 'appointments' && (
           <AssistantAppointmentsView
             patients={patients}
             onScheduleAppointment={(date) => {

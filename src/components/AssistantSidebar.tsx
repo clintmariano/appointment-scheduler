@@ -3,12 +3,13 @@ import { useAuth } from '../contexts/AuthContext';
 import {
   ListOrdered,
   Calendar,
+  Users,
   LogOut,
   Stethoscope,
   X
 } from 'lucide-react';
 
-export type AssistantViewType = 'queue' | 'appointments';
+export type AssistantViewType = 'queue' | 'patients' | 'appointments';
 
 interface AssistantSidebarProps {
   currentView: AssistantViewType;
@@ -22,6 +23,7 @@ export function AssistantSidebar({ currentView, onViewChange, isOpen = true, onC
 
   const navItems: { id: AssistantViewType; label: string; icon: React.ReactNode }[] = [
     { id: 'queue', label: 'Queue', icon: <ListOrdered size={20} /> },
+    { id: 'patients', label: 'Patients', icon: <Users size={20} /> },
     { id: 'appointments', label: 'Appointments', icon: <Calendar size={20} /> },
   ];
 
