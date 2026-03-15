@@ -229,7 +229,6 @@ export function QueueBoard({ patients, userRole }: QueueBoardProps) {
   }) => {
     setIsActionLoading(true);
     try {
-      const effectiveDate = getEffectiveDate();
       await queueApi.addWalkIn({
         patientId: data.patientId,
         patientName: data.patientName,
@@ -237,7 +236,7 @@ export function QueueBoard({ patients, userRole }: QueueBoardProps) {
         urgency: data.urgency,
         attributes: { patientGroup: data.patientGroup },
         notes: data.notes,
-        queueDate: effectiveDate // Pass the simulation date for queue filtering
+        queueDate: simulationDate || undefined // Only pass date in simulation mode
       });
       setShowAddWalkIn(false);
       await fetchQueue();
@@ -499,23 +498,24 @@ export function QueueBoard({ patients, userRole }: QueueBoardProps) {
             )}
 
             {queueStatus === 'active' && (
-              <>
-                <button
-                  onClick={handleCallNext}
-                  disabled={isActionLoading || !queue?.waiting.length}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                >
-                  <Users size={18} />
-                  Next Patient
-                </button>
-                <button
-                  onClick={() => setShowAddWalkIn(true)}
-                  className="px-4 py-2 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors flex items-center gap-2"
-                >
-                  <UserPlus size={18} />
-                  Add Walk-In
-                </button>
-              </>
+              <button
+                onClick={handleCallNext}
+                disabled={isActionLoading || !queue?.waiting.length}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                <Users size={18} />
+                Next Patient
+              </button>
+            )}
+
+            {(queueStatus === 'not_started' || queueStatus === 'active' || queueStatus === 'paused') && (
+              <button
+                onClick={() => setShowAddWalkIn(true)}
+                className="px-4 py-2 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors flex items-center gap-2"
+              >
+                <UserPlus size={18} />
+                Add Walk-In
+              </button>
             )}
 
             <button
@@ -566,38 +566,36 @@ export function QueueBoard({ patients, userRole }: QueueBoardProps) {
 
       {/* Queue Columns */}
       <div className="flex-1 overflow-hidden p-6 relative">
-        {/* Overlay for paused/not started/concluded queue */}
-        {(queueStatus === 'not_started' || queueStatus === 'paused' || queueStatus === 'concluded') && (
+        {/* Overlay for concluded queue */}
+        {queueStatus === 'concluded' && (
           <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex items-center justify-center">
             <div className="text-center">
-              {queueStatus === 'not_started' && (
-                <>
-                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Play size={32} className="text-gray-400" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-gray-700 mb-2">Queue Not Started</h3>
-                  <p className="text-gray-500">Click "Start Queue" when the doctor arrives to begin accepting patients.</p>
-                </>
-              )}
-              {queueStatus === 'paused' && (
-                <>
-                  <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Pause size={32} className="text-red-500" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-gray-700 mb-2">Queue Paused</h3>
-                  <p className="text-gray-500">Doctor is currently out. Click "Resume" when the doctor returns.</p>
-                </>
-              )}
-              {queueStatus === 'concluded' && (
-                <>
-                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <CheckCircle size={32} className="text-gray-400" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-gray-700 mb-2">Day Concluded</h3>
-                  <p className="text-gray-500">The queue has been concluded for today. Click "New Day" to start a new session.</p>
-                </>
-              )}
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle size={32} className="text-gray-400" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-700 mb-2">Day Concluded</h3>
+              <p className="text-gray-500">The queue has been concluded for today. Click "New Day" to start a new session.</p>
             </div>
+          </div>
+        )}
+
+        {/* Banner for not-started queue */}
+        {queueStatus === 'not_started' && (
+          <div className="mb-4 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-3">
+            <Play size={20} className="text-amber-500 flex-shrink-0" />
+            <p className="text-sm text-amber-700">
+              Queue not started yet. You can add walk-in patients now — they will be sorted by priority when the doctor starts the queue.
+            </p>
+          </div>
+        )}
+
+        {/* Banner for paused queue */}
+        {queueStatus === 'paused' && (
+          <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
+            <Pause size={20} className="text-red-500 flex-shrink-0" />
+            <p className="text-sm text-red-700">
+              Queue paused — doctor is currently out. You can still add walk-in patients.
+            </p>
           </div>
         )}
 

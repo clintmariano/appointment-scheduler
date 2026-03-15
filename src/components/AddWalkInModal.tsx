@@ -77,7 +77,7 @@ export function AddWalkInModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    const name = selectedPatient ? selectedPatient.patientName : patientName;
+    const name = selectedPatient ? selectedPatient.patientName : (patientName || searchQuery);
     if (!name.trim()) return;
 
     onSubmit({
