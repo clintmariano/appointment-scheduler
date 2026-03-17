@@ -39,13 +39,13 @@ export function FollowUpManager({ followUpDates, originalFollowUpDates = [], onC
 
   // Form state
   const [formData, setFormData] = useState({
-    date: new Date().toISOString().split('T')[0],
+    date: new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' }),
     notes: ''
   });
 
   const resetFields = () => {
     setFormData({
-      date: new Date().toISOString().split('T')[0],
+      date: new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' }),
       notes: ''
     });
     setSelectedAppointmentId(null);

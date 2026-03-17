@@ -70,7 +70,7 @@ export function DocumentForm({ document, originalDocument, onChange, onSave, isN
     if (!lmpDate) return '';
     const lmp = new Date(lmpDate);
     lmp.setDate(lmp.getDate() + 280);
-    return lmp.toISOString().split('T')[0];
+    return lmp.toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
   };
 
   // Emergency Contacts handlers
@@ -306,6 +306,7 @@ export function DocumentForm({ document, originalDocument, onChange, onSave, isN
                   onChange={(value) => updateField('birthday', value)}
                   type="date"
                   required
+                  max={new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' })}
                 />
               </div>
 

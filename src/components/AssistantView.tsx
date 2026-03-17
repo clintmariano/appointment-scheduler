@@ -156,7 +156,7 @@ function ScheduleModal({ patients, selectedDate, onClose, onSave, appointmentCou
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                min={new Date().toISOString().split('T')[0]}
+                min={new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' })}
                 className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
               />
             </div>

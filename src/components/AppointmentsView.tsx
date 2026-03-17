@@ -86,7 +86,7 @@ export function AppointmentsView({ patients, onSelectPatient, onScheduleAppointm
   }, [currentMonth]);
 
   const formatDateStr = (date: Date): string => {
-    return date.toISOString().split('T')[0];
+    return date.toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
   };
 
   const isToday = (date: Date): boolean => {

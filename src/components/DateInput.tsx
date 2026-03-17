@@ -7,9 +7,11 @@ interface DateInputProps {
   onChange: (value: string) => void;
   className?: string;
   placeholder?: string;
+  min?: string;
+  max?: string;
 }
 
-export function DateInput({ value, onChange, className = '', placeholder = 'MM/DD/YYYY' }: DateInputProps) {
+export function DateInput({ value, onChange, className = '', placeholder = 'MM/DD/YYYY', min, max }: DateInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isFocused, setIsFocused] = useState(false);
 
@@ -52,10 +54,12 @@ export function DateInput({ value, onChange, className = '', placeholder = 'MM/D
         ref={inputRef}
         type="date"
         value={value}
+        min={min}
+        max={max}
         onChange={(e) => onChange(e.target.value)}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
-        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+        className="absolute inset-0 opacity-0 pointer-events-none w-full h-full"
         style={{ colorScheme: 'light' }}
       />
     </div>

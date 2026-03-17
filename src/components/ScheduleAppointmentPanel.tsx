@@ -52,8 +52,8 @@ export function ScheduleAppointmentPanel({
   const [error, setError] = useState('');
   const dateInputRef = useRef<HTMLInputElement>(null);
 
-  // Get today's date in YYYY-MM-DD format for min date validation
-  const today = new Date().toISOString().split('T')[0];
+  // Get today's date in YYYY-MM-DD format for min date validation (Manila timezone)
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
 
   // Calculate current appointment count for selected date
   const currentCount = appointmentDate && appointmentCountForDate ? appointmentCountForDate(appointmentDate) : 0;
@@ -166,7 +166,7 @@ export function ScheduleAppointmentPanel({
               value={appointmentDate}
               min={today}
               onChange={(e) => setAppointmentDate(e.target.value)}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              className="absolute inset-0 w-full h-full opacity-0 pointer-events-none"
             />
             <div
               onClick={() => dateInputRef.current?.showPicker()}

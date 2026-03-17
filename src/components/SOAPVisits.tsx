@@ -44,9 +44,9 @@ export function SOAPVisits({ visits, onChange, patientBirthday }: SOAPVisitsProp
     assessment: string;
     plan: string;
   }>({
-    visitDate: new Date().toISOString().split('T')[0],
+    visitDate: new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' }),
     illnessName: '',
-    illnessStartDate: new Date().toISOString().split('T')[0],
+    illnessStartDate: new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' }),
     age: '',
     weight: '',
     height: '',
@@ -84,7 +84,7 @@ export function SOAPVisits({ visits, onChange, patientBirthday }: SOAPVisitsProp
   }, [formData.visitDate, patientBirthday]);
 
   const clearFields = () => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
     setFormData({
       visitDate: today,
       illnessName: '',

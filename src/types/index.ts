@@ -17,7 +17,7 @@ export const formatAOG = (aog: AOG | null | undefined): string => {
 };
 
 // Helper to calculate AOG from LMP (Last Menstrual Period)
-export const calculateAOG = (lmpDate: string, targetDate: string = new Date().toISOString().split('T')[0]): AOG => {
+export const calculateAOG = (lmpDate: string, targetDate: string = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' })): AOG => {
   const lmp = new Date(lmpDate);
   const target = new Date(targetDate);
   const diffTime = target.getTime() - lmp.getTime();
@@ -417,7 +417,7 @@ export const createEmptyPreviousPregnancy = (): PreviousPregnancy => ({
 
 export const createEmptyCurrentPregnancyRecord = (): CurrentPregnancyRecord => ({
   id: generateId(),
-  recordDate: new Date().toISOString().split('T')[0],
+  recordDate: new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' }),
   weight: '',
   bloodPressure: '',
   gestationalAge: '',
@@ -471,7 +471,7 @@ export const createEmptyLaborDeliveryPostpartum = (): LaborDeliveryPostpartum =>
 
 export const createEmptyClinicalDocumentation = (): ClinicalDocumentation => ({
   id: generateId(),
-  visitDate: new Date().toISOString().split('T')[0],
+  visitDate: new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' }),
   subjective: '',
   objective: '',
   assessment: '',
