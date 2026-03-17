@@ -35,6 +35,13 @@ export function PatientsView({
 }: PatientsViewProps) {
   const [searchTerm, setSearchTerm] = React.useState('');
   const [showDetailsOnMobile, setShowDetailsOnMobile] = React.useState(false);
+  const selectedRef = React.useRef<HTMLButtonElement>(null);
+
+  React.useEffect(() => {
+    if (selectedPatient && selectedRef.current) {
+      selectedRef.current.scrollIntoView({ block: 'center', behavior: 'instant' });
+    }
+  }, []);
 
   const filteredPatients = patients.filter(patient =>
     patient.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -108,6 +115,7 @@ export function PatientsView({
             filteredPatients.map((patient) => (
               <button
                 key={patient.id}
+                ref={patient.id === selectedPatient?.id ? selectedRef : undefined}
                 onClick={() => handleSelectPatient(patient.id)}
                 className={`w-full text-left p-3 rounded-xl transition-all ${
                   selectedPatient?.id === patient.id
