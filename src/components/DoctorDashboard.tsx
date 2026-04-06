@@ -199,7 +199,7 @@ export function DoctorDashboard({
   const todaysAppointments = getTodaysAppointments();
   const todaysPatients = getTodaysPatients();
 
-  // Generate today's appointments for display
+  // Generate upcoming appointments for the rest of the week (after today)
   const upcomingAppointments = (() => {
     const appointments: {
       date: string;
@@ -209,14 +209,19 @@ export function DoctorDashboard({
       status: 'attending' | 'pending';
     }[] = [];
 
+    // Calculate end of week (Sunday)
+    const endOfWeek = new Date(today);
+    endOfWeek.setDate(today.getDate() + (7 - today.getDay()));
+    endOfWeek.setHours(23, 59, 59, 999);
+
     patients.forEach((patient) => {
       if (patient.followUpDates && Array.isArray(patient.followUpDates)) {
         patient.followUpDates.forEach((followUp) => {
           if (followUp.date && !followUp.completed) {
             const followUpDate = new Date(followUp.date);
             followUpDate.setHours(0, 0, 0, 0);
-            // Only show appointments for today
-            if (followUpDate.getTime() === today.getTime()) {
+            // Show appointments after today through end of week
+            if (followUpDate.getTime() > today.getTime() && followUpDate.getTime() <= endOfWeek.getTime()) {
               appointments.push({
                 date: followUp.date,
                 time: '9:00 AM',
@@ -229,6 +234,9 @@ export function DoctorDashboard({
         });
       }
     });
+
+    // Sort by date
+    appointments.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
     return appointments.slice(0, 8);
   })();
@@ -252,7 +260,7 @@ export function DoctorDashboard({
                 <Calendar size={14} className="lg:w-4 lg:h-4 text-teal-600" />
               </div>
             </div>
-            <p className="text-2xl lg:text-4xl font-bold text-gray-800">{todaysAppointments.length}</p>
+            <p className="text-2xl lg:text-4xl font-bold text-gray-800">{todaysPatients.length}</p>
             <p className="text-[10px] lg:text-xs text-teal-600 mt-1">
               {upcomingAppointments.length} upcoming this week
             </p>
