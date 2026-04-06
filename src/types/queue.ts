@@ -80,6 +80,7 @@ export interface QueueState {
   waiting: QueueTicket[];
   called: QueueTicket[];
   inProgress: QueueTicket[];
+  done: QueueTicket[];
   stats: QueueStats;
 }
 

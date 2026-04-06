@@ -81,7 +81,8 @@ class QueueService {
     const grouped = {
       waiting: [],
       called: [],
-      inProgress: []
+      inProgress: [],
+      done: []
     };
 
     const now = new Date();
@@ -97,6 +98,8 @@ class QueueService {
         grouped.called.push(enrichedTicket);
       } else if (ticket.status === 'in_progress') {
         grouped.inProgress.push(enrichedTicket);
+      } else if (ticket.status === 'done') {
+        grouped.done.push(enrichedTicket);
       }
     }
 

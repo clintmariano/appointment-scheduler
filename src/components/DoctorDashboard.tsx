@@ -1,11 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PatientDocument, formatAOG, calculateAOG } from '../types';
+import { QueueTicket } from '../types/queue';
+import { getTodayQueue } from '../services/queueService';
 import { formatDate } from '../utils/documentUtils';
 import {
   Calendar,
   Grid3X3,
   List,
-  Baby
+  Baby,
+  Footprints
 } from 'lucide-react';
 
 interface DoctorDashboardProps {
@@ -22,8 +25,28 @@ export function DoctorDashboard({
   onViewCalendar
 }: DoctorDashboardProps) {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [queueTickets, setQueueTickets] = useState<QueueTicket[]>([]);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+
+  // Fetch today's queue (including completed) to get all patients and their statuses
+  useEffect(() => {
+    const fetchQueue = async () => {
+      try {
+        const queue = await getTodayQueue('default', 'main', ['waiting', 'called', 'in_progress', 'done']);
+        const allTickets = [
+          ...queue.waiting,
+          ...queue.called,
+          ...queue.inProgress,
+          ...(queue.done || [])
+        ];
+        setQueueTickets(allTickets);
+      } catch (err) {
+        console.error('Failed to fetch queue:', err);
+      }
+    };
+    fetchQueue();
+  }, []);
 
   // Calculate today's appointments (patients with follow-ups today)
   const getTodaysAppointments = () => {
@@ -56,11 +79,29 @@ export function DoctorDashboard({
     return appointments;
   };
 
-  // Get today's patients
+  // Map ticket status to display label
+  const getTicketStatusLabel = (ticketStatus?: string): string => {
+    switch (ticketStatus) {
+      case 'waiting': return 'Awaiting Consult';
+      case 'called': return 'Awaiting Consult';
+      case 'in_progress': return 'Consulting';
+      case 'done': return 'Completed';
+      default: return '';
+    }
+  };
+
+  // Build a lookup of patientId -> ticket for quick access
+  const ticketByPatientId = new Map<string, QueueTicket>();
+  queueTickets.forEach(t => {
+    if (t.patientId) ticketByPatientId.set(t.patientId, t);
+  });
+
+  // Get today's patients (scheduled + walk-ins)
   const getTodaysPatients = () => {
-    const todayPatients: { patient: PatientDocument; status: 'attending' | 'pending' }[] = [];
+    const todayPatients: { patient: PatientDocument; source: 'scheduled' | 'walk_in'; ticketStatus?: string }[] = [];
     const seenIds = new Set<string>();
 
+    // Add scheduled patients from follow-up dates
     patients.forEach((patient) => {
       if (patient.followUpDates && Array.isArray(patient.followUpDates)) {
         patient.followUpDates.forEach((followUp) => {
@@ -69,12 +110,54 @@ export function DoctorDashboard({
             followUpDate.setHours(0, 0, 0, 0);
             if (followUpDate.getTime() === today.getTime() && !followUp.completed) {
               seenIds.add(patient.id);
+              const ticket = ticketByPatientId.get(patient.id);
               todayPatients.push({
                 patient,
-                status: followUp.confirmed ? 'attending' : 'pending'
+                source: 'scheduled',
+                ticketStatus: ticket?.status
               });
             }
           }
+        });
+      }
+    });
+
+    // Add walk-in patients from queue
+    const walkInTickets = queueTickets.filter(t => t.source === 'walk_in');
+    walkInTickets.forEach((ticket) => {
+      if (ticket.patientId) {
+        const existingPatient = patients.find(p => p.id === ticket.patientId);
+        if (existingPatient && !seenIds.has(existingPatient.id)) {
+          seenIds.add(existingPatient.id);
+          todayPatients.push({
+            patient: existingPatient,
+            source: 'walk_in',
+            ticketStatus: ticket.status
+          });
+        } else if (!existingPatient && !seenIds.has(ticket.id)) {
+          seenIds.add(ticket.id);
+          todayPatients.push({
+            patient: {
+              id: ticket.patientId || ticket.id,
+              patientName: ticket.patientName,
+              birthday: ticket.patientBirthday || '',
+              gender: '',
+            } as PatientDocument,
+            source: 'walk_in',
+            ticketStatus: ticket.status
+          });
+        }
+      } else if (!seenIds.has(ticket.id)) {
+        seenIds.add(ticket.id);
+        todayPatients.push({
+          patient: {
+            id: ticket.id,
+            patientName: ticket.patientName,
+            birthday: ticket.patientBirthday || '',
+            gender: '',
+          } as PatientDocument,
+          source: 'walk_in',
+          ticketStatus: ticket.status
         });
       }
     });
@@ -243,27 +326,41 @@ export function DoctorDashboard({
             {/* Patient Cards - Grid View */}
             {viewMode === 'grid' && (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 lg:gap-4">
-                {todaysPatients.map(({ patient, status }) => (
+                {todaysPatients.map(({ patient, source, ticketStatus }) => {
+                  const statusLabel = getTicketStatusLabel(ticketStatus);
+                  return (
                   <button
                     key={patient.id}
                     onClick={() => onSelectPatient(patient.id)}
                     className="bg-white border border-gray-100 rounded-2xl p-3 lg:p-4 hover:border-teal-200 hover:shadow-md transition-all text-left"
                   >
-                    <div className="flex items-start justify-between mb-2 lg:mb-3">
-                      <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gray-100 rounded-full flex items-center justify-center">
+                    <div className="flex items-start gap-2 mb-2 lg:mb-3">
+                      <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
                         <span className="text-base lg:text-lg font-medium text-gray-500">
                           {patient.patientName.charAt(0).toUpperCase()}
                         </span>
                       </div>
-                      <span
-                        className={`inline-flex items-center px-2 lg:px-2.5 py-0.5 lg:py-1 rounded-full text-[10px] lg:text-xs font-medium ${
-                          status === 'attending'
-                            ? 'bg-teal-50 text-teal-700 border border-teal-200'
-                            : 'bg-amber-50 text-amber-700 border border-amber-200'
-                        }`}
-                      >
-                        {status === 'attending' ? 'Attending' : 'Pending'}
-                      </span>
+                      <div className="flex flex-wrap gap-1 justify-end flex-1 min-w-0">
+                        {source === 'walk_in' && (
+                          <span className="inline-flex items-center gap-1 px-2 lg:px-2.5 py-0.5 lg:py-1 rounded-full text-[10px] lg:text-xs font-medium whitespace-nowrap bg-blue-50 text-blue-700 border border-blue-200">
+                            <Footprints size={10} className="lg:w-3 lg:h-3" />
+                            Walk-in
+                          </span>
+                        )}
+                        <span
+                          className={`inline-flex items-center px-2 lg:px-2.5 py-0.5 lg:py-1 rounded-full text-[10px] lg:text-xs font-medium whitespace-nowrap ${
+                            statusLabel === 'Consulting'
+                              ? 'bg-teal-50 text-teal-700 border border-teal-200'
+                              : statusLabel === 'Completed'
+                              ? 'bg-green-50 text-green-700 border border-green-200'
+                              : statusLabel === 'Awaiting Consult'
+                              ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                              : 'bg-gray-50 text-gray-500 border border-gray-200'
+                          }`}
+                        >
+                          {statusLabel || 'Pending'}
+                        </span>
+                      </div>
                     </div>
                     <h4 className="font-medium text-gray-800 truncate mb-1.5 lg:mb-2 text-sm lg:text-base">{patient.patientName}</h4>
                     <div className="flex flex-wrap gap-1.5 lg:gap-2 text-[10px] lg:text-xs text-gray-500">
@@ -283,7 +380,8 @@ export function DoctorDashboard({
                       )}
                     </div>
                   </button>
-                ))}
+                  );
+                })}
               </div>
             )}
 
@@ -298,7 +396,9 @@ export function DoctorDashboard({
                   <span className="col-span-2">LMP / Birthday</span>
                   <span className="col-span-2">Status</span>
                 </div>
-                {todaysPatients.map(({ patient, status }) => (
+                {todaysPatients.map(({ patient, source, ticketStatus }) => {
+                  const statusLabel = getTicketStatusLabel(ticketStatus);
+                  return (
                   <button
                     key={patient.id}
                     onClick={() => onSelectPatient(patient.id)}
@@ -314,7 +414,13 @@ export function DoctorDashboard({
                         </div>
                         <div className="min-w-0">
                           <h4 className="font-medium text-gray-800 truncate text-sm lg:text-base">{patient.patientName}</h4>
-                          {patient.nickname && (
+                          {source === 'walk_in' && (
+                            <p className="text-xs text-blue-500 flex items-center gap-1">
+                              <Footprints size={10} />
+                              Walk-in
+                            </p>
+                          )}
+                          {source === 'scheduled' && patient.nickname && (
                             <p className="text-xs text-gray-400 truncate">"{patient.nickname}"</p>
                           )}
                         </div>
@@ -364,17 +470,22 @@ export function DoctorDashboard({
                         </div>
                         <span
                           className={`inline-flex items-center px-2 lg:px-2.5 py-0.5 lg:py-1 rounded-full text-[10px] lg:text-xs font-medium ${
-                            status === 'attending'
+                            statusLabel === 'Consulting'
                               ? 'bg-teal-50 text-teal-700 border border-teal-200'
-                              : 'bg-amber-50 text-amber-700 border border-amber-200'
+                              : statusLabel === 'Completed'
+                              ? 'bg-green-50 text-green-700 border border-green-200'
+                              : statusLabel === 'Awaiting Consult'
+                              ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                              : 'bg-gray-50 text-gray-500 border border-gray-200'
                           }`}
                         >
-                          {status === 'attending' ? 'Attending' : 'Pending'}
+                          {statusLabel || 'Pending'}
                         </span>
                       </div>
                     </div>
                   </button>
-                ))}
+                  );
+                })}
               </div>
             )}
 
