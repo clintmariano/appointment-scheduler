@@ -151,6 +151,23 @@ export const changeTicketUrgency = async (
 };
 
 /**
+ * Reorder a ticket in the waiting queue (move up or down)
+ */
+export const reorderTicket = async (
+  ticketId: string,
+  direction: 'up' | 'down',
+  date?: string
+): Promise<{ message: string; tickets: QueueTicket[] }> => {
+  const response = await fetch(`${API_BASE}/${ticketId}/reorder`, {
+    method: 'PATCH',
+    headers: getHeaders(),
+    body: JSON.stringify({ direction, date })
+  });
+
+  return handleResponse<{ message: string; tickets: QueueTicket[] }>(response);
+};
+
+/**
  * Remove/skip ticket
  */
 export const removeTicket = async (ticketId: string): Promise<QueueTicket> => {
@@ -183,6 +200,7 @@ export default {
   callNext,
   updateTicketStatus,
   changeTicketUrgency,
+  reorderTicket,
   removeTicket,
   getPatientTickets
 };

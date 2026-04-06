@@ -248,8 +248,15 @@ export function QueueBoard({ patients, userRole }: QueueBoardProps) {
     }
   };
 
-  // Handle call next
+  // Check if physician is currently consulting a patient
+  const isConsulting = (queue?.inProgress.length || 0) > 0;
+
+  // Handle call next - goes directly to in_progress
   const handleCallNext = async () => {
+    if (isConsulting) {
+      alert('Physician is currently consulting a patient. Complete the current consult first.');
+      return;
+    }
     setIsActionLoading(true);
     try {
       const effectiveDate = getEffectiveDate();
@@ -259,39 +266,28 @@ export function QueueBoard({ patients, userRole }: QueueBoardProps) {
       }
       await fetchQueue();
     } catch (err) {
-      console.error('Failed to call next:', err);
-      alert(err instanceof Error ? err.message : 'Failed to call next');
+      console.error('Failed to start consult:', err);
+      alert(err instanceof Error ? err.message : 'Failed to start consult');
     } finally {
       setIsActionLoading(false);
     }
   };
 
-  // Ticket action handlers
-  const handleCall = async () => {
+  // Start consult - moves patient directly to in_progress
+  const handleStartConsult = async () => {
     if (!selectedTicket) return;
-    setIsActionLoading(true);
-    try {
-      await queueApi.updateTicketStatus(selectedTicket.id, { status: 'called' });
-      setSelectedTicket(null);
-      await fetchQueue();
-    } catch (err) {
-      console.error('Failed to call patient:', err);
-      alert(err instanceof Error ? err.message : 'Failed to call patient');
-    } finally {
-      setIsActionLoading(false);
+    if (isConsulting) {
+      alert('Physician is currently consulting a patient. Complete the current consult first.');
+      return;
     }
-  };
-
-  const handleStartService = async () => {
-    if (!selectedTicket) return;
     setIsActionLoading(true);
     try {
       await queueApi.updateTicketStatus(selectedTicket.id, { status: 'in_progress' });
       setSelectedTicket(null);
       await fetchQueue();
     } catch (err) {
-      console.error('Failed to start service:', err);
-      alert(err instanceof Error ? err.message : 'Failed to start service');
+      console.error('Failed to start consult:', err);
+      alert(err instanceof Error ? err.message : 'Failed to start consult');
     } finally {
       setIsActionLoading(false);
     }
@@ -312,21 +308,6 @@ export function QueueBoard({ patients, userRole }: QueueBoardProps) {
     }
   };
 
-  const handleSkip = async () => {
-    if (!selectedTicket) return;
-    setIsActionLoading(true);
-    try {
-      await queueApi.updateTicketStatus(selectedTicket.id, { status: 'skipped' });
-      setSelectedTicket(null);
-      await fetchQueue();
-    } catch (err) {
-      console.error('Failed to skip:', err);
-      alert(err instanceof Error ? err.message : 'Failed to skip');
-    } finally {
-      setIsActionLoading(false);
-    }
-  };
-
   const handleNoShow = async () => {
     if (!selectedTicket) return;
     setIsActionLoading(true);
@@ -337,6 +318,21 @@ export function QueueBoard({ patients, userRole }: QueueBoardProps) {
     } catch (err) {
       console.error('Failed to mark no show:', err);
       alert(err instanceof Error ? err.message : 'Failed to mark no show');
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  // Handle reorder ticket
+  const handleReorderTicket = async (ticketId: string, direction: 'up' | 'down') => {
+    setIsActionLoading(true);
+    try {
+      const effectiveDate = getEffectiveDate();
+      await queueApi.reorderTicket(ticketId, direction, effectiveDate);
+      await fetchQueue();
+    } catch (err) {
+      console.error('Failed to reorder ticket:', err);
+      alert(err instanceof Error ? err.message : 'Failed to reorder ticket');
     } finally {
       setIsActionLoading(false);
     }
@@ -500,7 +496,8 @@ export function QueueBoard({ patients, userRole }: QueueBoardProps) {
             {queueStatus === 'active' && (
               <button
                 onClick={handleCallNext}
-                disabled={isActionLoading || !queue?.waiting.length}
+                disabled={isActionLoading || !queue?.waiting.length || isConsulting}
+                title={isConsulting ? 'Complete current consult first' : undefined}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 <Users size={18} />
@@ -532,21 +529,6 @@ export function QueueBoard({ patients, userRole }: QueueBoardProps) {
         {/* Stats */}
         {queue && (
           <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2 text-gray-600">
-              <Hourglass size={18} className="text-amber-500" />
-              <span className="font-medium">{queue.stats.totalWaiting}</span>
-              <span className="text-sm">waiting</span>
-            </div>
-            <div className="flex items-center gap-2 text-gray-600">
-              <Clock size={18} className="text-blue-500" />
-              <span className="font-medium">{queue.stats.avgWaitTime} min</span>
-              <span className="text-sm">avg wait</span>
-            </div>
-            <div className="flex items-center gap-2 text-gray-600">
-              <CheckCircle size={18} className="text-green-500" />
-              <span className="font-medium">{queue.stats.totalServed}</span>
-              <span className="text-sm">served today</span>
-            </div>
             <div className="ml-auto flex items-center gap-2 text-gray-600">
               <Clock size={18} className="text-gray-400" />
               <span className="font-medium font-mono">
@@ -604,17 +586,22 @@ export function QueueBoard({ patients, userRole }: QueueBoardProps) {
           <div className="flex flex-col bg-gray-50 rounded-xl p-4 overflow-hidden">
             <div className="flex items-center gap-2 mb-4">
               <Hourglass size={20} className="text-amber-500" />
-              <h2 className="font-semibold text-gray-900">Waiting in Lobby</h2>
+              <h2 className="font-semibold text-gray-900">Awaiting Consult</h2>
               <span className="ml-auto text-sm text-gray-500">
                 {queue?.waiting.length || 0} patients
               </span>
             </div>
             <div className="flex-1 overflow-y-auto space-y-3">
-              {queue?.waiting.map((ticket) => (
+              {queue?.waiting.map((ticket, index) => (
                 <QueueTicketCard
                   key={ticket.id}
                   ticket={ticket}
                   onClick={() => setSelectedTicket(ticket)}
+                  showReorder={queueStatus === 'active' || queueStatus === 'paused' || queueStatus === 'not_started'}
+                  isFirst={index === 0}
+                  isLast={index === (queue?.waiting.length || 1) - 1}
+                  onMoveUp={(id) => handleReorderTicket(id, 'up')}
+                  onMoveDown={(id) => handleReorderTicket(id, 'down')}
                 />
               ))}
               {queue?.waiting.length === 0 && (
@@ -626,42 +613,28 @@ export function QueueBoard({ patients, userRole }: QueueBoardProps) {
             </div>
           </div>
 
-          {/* Being Served Column */}
+          {/* Consulting Physician Column */}
           <div className="flex flex-col bg-gray-50 rounded-xl p-4 overflow-hidden">
             <div className="flex items-center gap-2 mb-4">
               <Users size={20} className="text-teal-500" />
-              <h2 className="font-semibold text-gray-900">Being Served</h2>
+              <h2 className="font-semibold text-gray-900">Consulting Physician</h2>
               <span className="ml-auto text-sm text-gray-500">
-                {(queue?.called.length || 0) + (queue?.inProgress.length || 0)} patients
+                {queue?.inProgress.length || 0} patient{(queue?.inProgress.length || 0) !== 1 ? 's' : ''}
               </span>
             </div>
             <div className="flex-1 overflow-y-auto space-y-3">
-              {/* Called patients */}
-              {queue?.called.map((ticket) => (
-                <div key={ticket.id}>
-                  <p className="text-xs text-gray-500 uppercase mb-1">Called</p>
-                  <QueueTicketCard
-                    ticket={ticket}
-                    onClick={() => setSelectedTicket(ticket)}
-                    showWaitTime={false}
-                  />
-                </div>
-              ))}
-              {/* In Progress patients */}
               {queue?.inProgress.map((ticket) => (
-                <div key={ticket.id}>
-                  <p className="text-xs text-gray-500 uppercase mb-1">In Progress</p>
-                  <QueueTicketCard
-                    ticket={ticket}
-                    onClick={() => setSelectedTicket(ticket)}
-                    showWaitTime={false}
-                  />
-                </div>
+                <QueueTicketCard
+                  key={ticket.id}
+                  ticket={ticket}
+                  onClick={() => setSelectedTicket(ticket)}
+                  showWaitTime={false}
+                />
               ))}
-              {(queue?.called.length || 0) + (queue?.inProgress.length || 0) === 0 && (
+              {(queue?.inProgress.length || 0) === 0 && (
                 <div className="text-center py-8 text-gray-400">
                   <CheckCircle size={48} className="mx-auto mb-2 opacity-50" />
-                  <p>No patients being served</p>
+                  <p>No patients consulting</p>
                 </div>
               )}
             </div>
@@ -674,11 +647,10 @@ export function QueueBoard({ patients, userRole }: QueueBoardProps) {
         <QueueActionModal
           ticket={selectedTicket}
           queueStatus={queueStatus}
+          isConsulting={isConsulting}
           onClose={() => setSelectedTicket(null)}
-          onCall={handleCall}
-          onStartService={handleStartService}
+          onStartConsult={handleStartConsult}
           onComplete={handleComplete}
-          onSkip={handleSkip}
           onNoShow={handleNoShow}
           onChangeUrgency={handleChangeUrgency}
           isLoading={isActionLoading}

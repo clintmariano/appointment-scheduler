@@ -1,14 +1,19 @@
 import React from 'react';
 import { QueueTicket, formatWaitTime } from '../types/queue';
-import { User, Clock, AlertTriangle, AlertCircle } from 'lucide-react';
+import { User, Clock, AlertTriangle, AlertCircle, ChevronUp, ChevronDown } from 'lucide-react';
 
 interface QueueTicketCardProps {
   ticket: QueueTicket;
   onClick: () => void;
   showWaitTime?: boolean;
+  showReorder?: boolean;
+  isFirst?: boolean;
+  isLast?: boolean;
+  onMoveUp?: (ticketId: string) => void;
+  onMoveDown?: (ticketId: string) => void;
 }
 
-export function QueueTicketCard({ ticket, onClick, showWaitTime = true }: QueueTicketCardProps) {
+export function QueueTicketCard({ ticket, onClick, showWaitTime = true, showReorder = false, isFirst = false, isLast = false, onMoveUp, onMoveDown }: QueueTicketCardProps) {
   // Determine background color based on urgency and patient group
   const getBackgroundColor = () => {
     if (ticket.urgency === 'emergency') {
@@ -46,13 +51,36 @@ export function QueueTicketCard({ ticket, onClick, showWaitTime = true }: QueueT
   };
 
   return (
-    <div
-      onClick={onClick}
-      className={`
-        p-4 rounded-lg border cursor-pointer transition-all
-        ${getBackgroundColor()}
-      `}
-    >
+    <div className="flex items-stretch gap-0">
+      {/* Reorder Buttons */}
+      {showReorder && (
+        <div className="flex flex-col justify-center gap-0.5 mr-1.5">
+          <button
+            onClick={(e) => { e.stopPropagation(); onMoveUp?.(ticket.id); }}
+            disabled={isFirst}
+            className="p-0.5 rounded hover:bg-gray-200 disabled:opacity-25 disabled:cursor-not-allowed text-gray-500 hover:text-gray-700 transition-colors"
+            title="Move up"
+          >
+            <ChevronUp size={18} />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); onMoveDown?.(ticket.id); }}
+            disabled={isLast}
+            className="p-0.5 rounded hover:bg-gray-200 disabled:opacity-25 disabled:cursor-not-allowed text-gray-500 hover:text-gray-700 transition-colors"
+            title="Move down"
+          >
+            <ChevronDown size={18} />
+          </button>
+        </div>
+      )}
+
+      <div
+        onClick={onClick}
+        className={`
+          flex-1 p-4 rounded-lg border cursor-pointer transition-all
+          ${getBackgroundColor()}
+        `}
+      >
       <div className="flex items-start justify-between">
         <div className="flex items-start gap-3">
           {/* Avatar */}
@@ -114,6 +142,7 @@ export function QueueTicketCard({ ticket, onClick, showWaitTime = true }: QueueT
             {ticket.deskNumber}
           </span>
         )}
+      </div>
       </div>
     </div>
   );

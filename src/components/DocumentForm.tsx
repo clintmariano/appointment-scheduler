@@ -54,11 +54,14 @@ export function DocumentForm({ document, originalDocument, onChange, onSave, isN
   };
 
   const updateField = (field: keyof PatientDocument, value: any) => {
-    onChange({
-      ...document,
+    // Use a functional updater so consecutive synchronous updates (e.g. LMP
+    // then EDD in the same handler) don't overwrite each other by reading a
+    // stale `document` from closure.
+    (onChange as unknown as React.Dispatch<React.SetStateAction<PatientDocument>>)((prev) => ({
+      ...prev,
       [field]: value,
       updatedAt: new Date().toISOString()
-    });
+    }));
   };
 
   const handlePrint = () => {

@@ -268,6 +268,39 @@ router.patch('/:id/urgency', simpleAuth, async (req, res) => {
 });
 
 /**
+ * PATCH /api/queue/:id/reorder
+ * Move a ticket up or down in the waiting queue
+ */
+router.patch('/:id/reorder', simpleAuth, async (req, res) => {
+  try {
+    const { direction, date } = req.body;
+
+    if (!['up', 'down'].includes(direction)) {
+      return res.status(400).json({ message: 'Direction must be "up" or "down"' });
+    }
+
+    const tickets = await queueService.reorderTicket(
+      req.params.id,
+      direction,
+      'default',
+      'main',
+      date || null
+    );
+
+    // Emit socket event
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('queue_updated', { action: 'reordered', tickets });
+    }
+
+    res.json({ message: 'Queue reordered', tickets });
+  } catch (error) {
+    console.error('Reorder ticket error:', error.message, error.stack);
+    res.status(400).json({ message: error.message || 'Failed to reorder ticket' });
+  }
+});
+
+/**
  * DELETE /api/queue/:id
  * Remove/skip a ticket
  */

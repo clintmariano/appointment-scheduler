@@ -108,6 +108,12 @@ const queueTicketSchema = new mongoose.Schema({
     default: null
   },
 
+  // Manual queue order override (set by assistant to override priority sorting)
+  manualOrder: {
+    type: Number,
+    default: null
+  },
+
   // Notes
   notes: {
     type: String,

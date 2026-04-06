@@ -57,6 +57,17 @@ class PriorityEngine {
    * @returns {Number} Comparison result (-1, 0, 1)
    */
   compare(a, b) {
+    // Manual order override takes highest precedence
+    const aHasManual = a.manualOrder != null;
+    const bHasManual = b.manualOrder != null;
+
+    if (aHasManual && bHasManual) {
+      return a.manualOrder - b.manualOrder;
+    }
+    // Tickets with manual order come before those without
+    if (aHasManual) return -1;
+    if (bHasManual) return 1;
+
     // First compare by priority rank
     if (a.priorityRank !== b.priorityRank) {
       return a.priorityRank - b.priorityRank;

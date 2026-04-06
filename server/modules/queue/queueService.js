@@ -270,12 +270,13 @@ class QueueService {
     const sorted = this.engine.sortQueue(waitingTickets);
     const nextTicket = sorted[0];
 
-    // Update the ticket
+    // Update the ticket - go directly to in_progress
     const updated = await QueueTicket.findOneAndUpdate(
       { id: nextTicket.id },
       {
-        status: 'called',
+        status: 'in_progress',
         calledAt: new Date(),
+        servedAt: new Date(),
         servedBy,
         deskNumber,
         updatedAt: new Date()
@@ -353,6 +354,66 @@ class QueueService {
       .sort({ createdAt: -1 })
       .limit(limit)
       .lean();
+  }
+
+  /**
+   * Reorder a ticket in the waiting queue (move up or down)
+   *
+   * @param {String} ticketId - Ticket ID to move
+   * @param {String} direction - 'up' or 'down'
+   * @param {String} tenantId - Tenant ID
+   * @param {String} locationId - Location ID
+   * @param {String} dateStr - Optional date string (YYYY-MM-DD)
+   * @returns {Array} Updated sorted waiting tickets
+   */
+  async reorderTicket(ticketId, direction, tenantId = 'default', locationId = 'main', dateStr = null) {
+    const { start, end } = this.getDateRange(dateStr);
+
+    // Get all waiting tickets for today
+    const waitingTickets = await QueueTicket.find({
+      tenantId,
+      locationId,
+      status: 'waiting',
+      queueEnteredAt: { $gte: start, $lte: end }
+    }).lean();
+
+    if (waitingTickets.length < 2) {
+      throw new Error('Not enough tickets to reorder');
+    }
+
+    // Sort by current priority (respects existing manualOrder)
+    const sorted = this.engine.sortQueue(waitingTickets);
+
+    // Find the target ticket's index
+    const currentIndex = sorted.findIndex(t => t.id === ticketId);
+    if (currentIndex === -1) {
+      throw new Error('Ticket not found in waiting queue');
+    }
+
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (targetIndex < 0 || targetIndex >= sorted.length) {
+      throw new Error(`Cannot move ${direction}: already at the ${direction === 'up' ? 'top' : 'bottom'}`);
+    }
+
+    // Assign sequential manualOrder to all waiting tickets based on current sort
+    for (let i = 0; i < sorted.length; i++) {
+      sorted[i].manualOrder = i;
+    }
+
+    // Swap the two tickets
+    const temp = sorted[currentIndex].manualOrder;
+    sorted[currentIndex].manualOrder = sorted[targetIndex].manualOrder;
+    sorted[targetIndex].manualOrder = temp;
+
+    // Persist manualOrder for all tickets individually
+    for (const t of sorted) {
+      await QueueTicket.findOneAndUpdate(
+        { id: t.id },
+        { $set: { manualOrder: t.manualOrder, updatedAt: new Date() } }
+      );
+    }
+
+    return sorted.sort((a, b) => a.manualOrder - b.manualOrder);
   }
 
   /**

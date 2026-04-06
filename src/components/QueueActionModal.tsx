@@ -2,10 +2,8 @@ import React, { useState } from 'react';
 import { QueueTicket, QueueStatus, TicketUrgency, getStatusDisplay, formatWaitTime } from '../types/queue';
 import {
   X,
-  Phone,
   Play,
   CheckCircle,
-  SkipForward,
   UserX,
   AlertTriangle,
   AlertCircle,
@@ -16,11 +14,10 @@ import {
 interface QueueActionModalProps {
   ticket: QueueTicket;
   queueStatus: QueueStatus;
+  isConsulting: boolean;
   onClose: () => void;
-  onCall: () => void;
-  onStartService: () => void;
+  onStartConsult: () => void;
   onComplete: () => void;
-  onSkip: () => void;
   onNoShow: () => void;
   onChangeUrgency: (urgency: TicketUrgency) => void;
   isLoading?: boolean;
@@ -29,17 +26,15 @@ interface QueueActionModalProps {
 export function QueueActionModal({
   ticket,
   queueStatus,
+  isConsulting,
   onClose,
-  onCall,
-  onStartService,
+  onStartConsult,
   onComplete,
-  onSkip,
   onNoShow,
   onChangeUrgency,
   isLoading = false
 }: QueueActionModalProps) {
   const queueActive = queueStatus === 'active';
-  const [showUrgencyMenu, setShowUrgencyMenu] = useState(false);
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleString('en-US', {
@@ -49,6 +44,15 @@ export function QueueActionModal({
       minute: '2-digit'
     });
   };
+
+  // Determine if Start Consult should be disabled and why
+  const getStartConsultState = () => {
+    if (!queueActive) return { disabled: true, label: 'Start Consult (Start Queue First)' };
+    if (isConsulting) return { disabled: true, label: 'Start Consult (Complete Current First)' };
+    return { disabled: false, label: 'Start Consult' };
+  };
+
+  const startConsultState = getStartConsultState();
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -170,31 +174,20 @@ export function QueueActionModal({
 
         {/* Actions */}
         <div className="p-4 border-t bg-gray-50 space-y-3">
-          {/* Primary Actions based on status */}
+          {/* Start Consult - for waiting patients */}
           {ticket.status === 'waiting' && (
             <button
-              onClick={onCall}
-              disabled={isLoading || !queueActive}
-              title={!queueActive ? 'Queue must be started first' : undefined}
+              onClick={onStartConsult}
+              disabled={isLoading || startConsultState.disabled}
+              title={startConsultState.disabled ? startConsultState.label : undefined}
               className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Phone size={18} />
-              {queueActive ? 'Call Patient' : 'Call Patient (Start Queue First)'}
-            </button>
-          )}
-
-          {ticket.status === 'called' && (
-            <button
-              onClick={onStartService}
-              disabled={isLoading || !queueActive}
-              title={!queueActive ? 'Queue must be started first' : undefined}
-              className="w-full py-3 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
               <Play size={18} />
-              {queueActive ? 'Start Service' : 'Start Service (Start Queue First)'}
+              {startConsultState.label}
             </button>
           )}
 
+          {/* Complete - for in_progress patients */}
           {ticket.status === 'in_progress' && (
             <button
               onClick={onComplete}
@@ -206,26 +199,16 @@ export function QueueActionModal({
             </button>
           )}
 
-          {/* Secondary Actions */}
-          {['waiting', 'called'].includes(ticket.status) && (
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={onSkip}
-                disabled={isLoading}
-                className="py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                <SkipForward size={16} />
-                Skip
-              </button>
-              <button
-                onClick={onNoShow}
-                disabled={isLoading}
-                className="py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                <UserX size={16} />
-                No Show
-              </button>
-            </div>
+          {/* No Show - for waiting patients */}
+          {ticket.status === 'waiting' && (
+            <button
+              onClick={onNoShow}
+              disabled={isLoading}
+              className="w-full py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              <UserX size={16} />
+              No Show
+            </button>
           )}
 
           {/* Cancel Button */}

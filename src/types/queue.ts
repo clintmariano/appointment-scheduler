@@ -58,6 +58,9 @@ export interface QueueTicket {
   servedBy?: string | null;
   deskNumber?: string | null;
 
+  // Manual order override
+  manualOrder?: number | null;
+
   // Notes
   notes?: string;
 
@@ -149,7 +152,7 @@ export const getStatusDisplay = (status: TicketStatus): string => {
     case 'called':
       return 'Called';
     case 'in_progress':
-      return 'Being Served';
+      return 'Consulting Physician';
     case 'done':
       return 'Completed';
     case 'skipped':
