@@ -44,6 +44,8 @@ export default defineConfig({
         ]
       },
       workbox: {
+        skipWaiting: true,
+        clientsClaim: true,
         // Cache strategies for different resource types
         runtimeCaching: [
           {
