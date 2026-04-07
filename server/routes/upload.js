@@ -74,10 +74,15 @@ const getR2Client = () => {
   return r2Client;
 };
 
-// Ensure uploads directory exists for local storage
+// Ensure uploads directories exist for local storage
 const uploadsDir = path.join(__dirname, '..', 'uploads', 'profile-pictures');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+const documentsDir = path.join(__dirname, '..', 'uploads', 'documents');
+if (!fs.existsSync(documentsDir)) {
+  fs.mkdirSync(documentsDir, { recursive: true });
 }
 
 // Upload to R2
@@ -151,6 +156,93 @@ router.post('/profile-picture', simpleAuth, upload.single('image'), async (req, 
     console.error('Upload error:', error);
     res.status(500).json({
       message: 'Failed to upload image',
+      error: error.message
+    });
+  }
+});
+
+// Configure multer for document uploads (images + PDFs)
+const documentUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+    if (allowed.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files (JPEG, PNG, WebP) and PDFs are allowed'), false);
+    }
+  }
+});
+
+// Upload document to R2
+const uploadDocumentToR2 = async (file, filename) => {
+  const client = getR2Client();
+  if (!client) {
+    throw new Error('R2 client not available');
+  }
+
+  const key = `documents/${filename}`;
+
+  const command = new PutObjectCommand({
+    Bucket: process.env.R2_BUCKET_NAME,
+    Key: key,
+    Body: file.buffer,
+    ContentType: file.mimetype,
+  });
+
+  await client.send(command);
+
+  const publicUrl = process.env.R2_PUBLIC_URL
+    ? `${process.env.R2_PUBLIC_URL}/${key}`
+    : `https://${process.env.R2_BUCKET_NAME}.${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${key}`;
+
+  return publicUrl;
+};
+
+// Upload document to local storage
+const uploadDocumentToLocal = async (file, filename) => {
+  const filePath = path.join(documentsDir, filename);
+  await fs.promises.writeFile(filePath, file.buffer);
+  return `/uploads/documents/${filename}`;
+};
+
+// POST /api/upload/document
+router.post('/document', simpleAuth, documentUpload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file provided' });
+    }
+
+    const ext = path.extname(req.file.originalname) || '.pdf';
+    const filename = `${uuidv4()}${ext}`;
+
+    let url;
+
+    if (isR2Configured() && S3Client) {
+      console.log('Uploading document to Cloudflare R2...');
+      url = await uploadDocumentToR2(req.file, filename);
+      console.log('Uploaded document to R2:', url);
+    } else {
+      console.log('R2 not configured, using local storage for document...');
+      url = await uploadDocumentToLocal(req.file, filename);
+      console.log('Saved document locally:', url);
+    }
+
+    res.json({
+      url,
+      filename,
+      originalName: req.file.originalname,
+      size: req.file.size,
+      mimetype: req.file.mimetype
+    });
+
+  } catch (error) {
+    console.error('Document upload error:', error);
+    res.status(500).json({
+      message: 'Failed to upload document',
       error: error.message
     });
   }

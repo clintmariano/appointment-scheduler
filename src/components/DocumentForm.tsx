@@ -23,6 +23,7 @@ import { FormField } from './FormField';
 import { ImmunizationTable } from './ImmunizationTable';
 import { FollowUpManager } from './FollowUpManager';
 import { ProfilePictureUpload } from './ProfilePictureUpload';
+import { ImagingReportUpload } from './ImagingReportUpload';
 import { formatDateObj } from '../utils/documentUtils';
 import { Save, Printer, Menu, Plus, Trash2, Eye } from 'lucide-react';
 
@@ -1305,19 +1306,17 @@ export function DocumentForm({ document, originalDocument, onChange, onSave, isN
               }}
               placeholder="Select file"
             />
-            <FormField
-              label="Imaging Reports"
+            <ImagingReportUpload
               value={document.clinicalDocumentation?.[0]?.imagingReports || ''}
-              onChange={(value) => {
+              onChange={(url) => {
                 if ((document.clinicalDocumentation || []).length === 0) {
                   const newDoc = createEmptyClinicalDocumentation();
-                  newDoc.imagingReports = value;
+                  newDoc.imagingReports = url;
                   updateField('clinicalDocumentation', [newDoc]);
                 } else {
-                  updateClinicalDocumentation(0, 'imagingReports', value);
+                  updateClinicalDocumentation(0, 'imagingReports', url);
                 }
               }}
-              placeholder="Select file"
             />
           </div>
 
